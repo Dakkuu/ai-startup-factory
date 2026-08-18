@@ -1,0 +1,23 @@
+name: A-share news inspect
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/a-share-news-inspect.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas
+      - name: Inspect Astock news
+        working-directory: a-share-backtest
+        run: python inspect_astock_news.py
