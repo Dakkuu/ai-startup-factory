@@ -1,0 +1,1 @@
+Trigger historical all-A valuation context after workflow installation.
