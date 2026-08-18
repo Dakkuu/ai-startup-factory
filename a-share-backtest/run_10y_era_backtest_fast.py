@@ -49,9 +49,11 @@ def build_weekly_panel_fast(cal,m):
         sig=z.reindex(signal_dates)
         ex=z.reindex(exec_dates).reset_index(drop=True)
         nex=z.reindex(next_exec_dates).reset_index(drop=True)
-        valid=active_s & active_e & (~pd.isna(exec_dates))
-        valid &= np.isfinite(sig[needed].to_numpy()).all(axis=1)
-        valid &= np.isfinite(ex[['open','high','low','close','volume']].to_numpy()).all(axis=1)
+        # The panel may include execution-day fields, but validity for SIGNAL RANKING
+        # is based on signal-day information only. Missing/suspended execution-day
+        # data must cause an order failure later, never a replacement pick today.
+        valid=active_s & (~pd.isna(exec_dates))
+        valid &= np.isfinite(sig[needed+['close']].to_numpy()).all(axis=1)
         if not valid.any(): continue
         idx=np.flatnonzero(valid)
         rec=pd.DataFrame({
@@ -67,9 +69,8 @@ def build_weekly_panel_fast(cal,m):
             'exec_factor':ex['factor'].to_numpy()[idx].astype(float),
         })
         label=np.full(len(idx),np.nan,dtype=float)
-        ne_open=nex['open'].to_numpy()
-        e_open=ex['open'].to_numpy()
-        good_label=active_ne[idx] & np.isfinite(ne_open[idx]) & np.isfinite(e_open[idx]) & (e_open[idx]>0)
+        ne_open=nex['open'].to_numpy(); e_open=ex['open'].to_numpy()
+        good_label=active_e[idx] & active_ne[idx] & np.isfinite(ne_open[idx]) & np.isfinite(e_open[idx]) & (e_open[idx]>0)
         label[good_label]=ne_open[idx][good_label]/e_open[idx][good_label]-1
         rec['label']=label
         rec['label_exit_date']=next_exec_dates[idx]
@@ -85,7 +86,6 @@ def build_weekly_panel_fast(cal,m):
     }
     for outcol,(incol,ascending) in rank_map.items():
         p[outcol]=p.groupby('signal_date')[incol].rank(pct=True,method='average',ascending=ascending)
-    # fail closed: signal date must precede trade date, labels must mature after trade date.
     if not (pd.to_datetime(p.signal_date)<pd.to_datetime(p.trade_date)).all(): raise RuntimeError('panel signal/trade timing violation')
     lab=p[p.label.notna()]
     if len(lab) and not (pd.to_datetime(lab.trade_date)<pd.to_datetime(lab.label_exit_date)).all(): raise RuntimeError('panel label timing violation')
@@ -93,5 +93,54 @@ def build_weekly_panel_fast(cal,m):
     print('panel rows',len(p),'signal dates',p.signal_date.nunique(),flush=True)
     return p,signal_dates
 
+
+def target_for_no_future(g,state,agent,qscore):
+    x=g.copy();x['qscore']=qscore
+    # IMPORTANT: this filter uses signal-day liquidity only. Do NOT inspect exec_open
+    # here. Tomorrow's suspension/limit lock is resolved by the execution layer.
+    x=x[(x.liq_ma20>=base.MIN_LIQ)].copy()
+    s=agent['strategy'];reg=state['regime']
+    if s=='01_defensive_institution':
+        x=x[(x.mom120>-.10)&(x.ret1<.07)&(x.vol_ratio<3)]
+        x['score']=.34*x.r_lowvol20+.22*x.r_lowvol60+.24*x.r_liq+.10*x.r_mom120+.10*x.r_mom60
+    elif s=='02_breakout_swing':
+        x=x[(x.mom20>0)&(x.high20>-.025)&(x.vol_ratio>1.15)&(x.ret1<.095)]
+        x['score']=.30*x.r_high20+.25*x.r_volratio+.20*x.r_mom20+.15*x.r_mom60+.10*x.r_liq
+    elif s=='03_smart_money_trend':
+        x=x[(x.mom60>0)&(x.mom120>0)&(x.ma60gap>0)&(x.vol_ratio.between(.7,2.8))]
+        x['score']=.28*x.r_liq+.22*x.r_mom120+.20*x.r_mom60+.18*x.r_lowvol20+.12*x.r_mom20
+    elif s=='04_era_appropriate_quant':
+        x['score']=x.qscore
+    elif s=='05_retail_attention_chase':
+        x=x[(x.ret1>.01)&(x.mom5>0)&(x.vol_ratio>1.5)&(x.high20>-.04)]
+        x['score']=.30*x.r_volratio+.25*x.r_ret1+.20*x.r_high20+.15*x.r_mom5+.10*x.r_mom20
+    elif s=='06_hot_money_relay':
+        x=x[(x.mom5>.06)&(x.ret1>.015)&(x.ret1<.19)&(x.vol_ratio>1.35)&(x.high20>-.05)]
+        x['score']=.30*x.r_mom5+.25*x.r_ret1+.25*x.r_volratio+.10*x.r_high20+.10*x.r_liq
+    elif s=='07_limit_up_relay':
+        if reg!='hot': return x.iloc[0:0]
+        x=x[(x.ret1>=.095)&(x.mom20>0)&(x.vol_ratio>.8)]
+        x['score']=.35*x.r_ret1+.25*x.r_volratio+.20*x.r_mom20+.20*x.r_liq
+    elif s=='08_panic_reversal':
+        panic=(x.ret1<=-.07)|(x.mom5<=-.12)
+        x=x[panic&(x.vol_ratio>1.15)&(x.mom120>-.35)]
+        x['score']=.40*(1-x.r_ret1)+.20*x.r_volratio+.20*x.r_liq+.20*x.r_mom120
+    elif s=='09_medium_term_momentum':
+        x=x[(x.mom60>0)&(x.mom120>0)&(x.ret1<.095)]
+        x['score']=.35*x.r_mom120+.30*x.r_mom60+.15*x.r_mom20+.10*x.r_liq+.10*x.r_lowvol20
+    elif s=='10_regime_adaptive':
+        if reg=='cold':
+            x=x[(x.mom120>-.08)&(x.ret1<.06)]
+            x['score']=.35*x.r_lowvol20+.25*x.r_liq+.20*x.r_mom120+.10*x.r_mom60+.10*x.qscore.rank(pct=True)
+        elif reg=='hot':
+            x=x[(x.mom20>0)&(x.vol_ratio>1.0)]
+            x['score']=.25*x.r_mom20+.20*x.r_mom60+.20*x.r_volratio+.15*x.r_high20+.20*x.qscore.rank(pct=True)
+        else:
+            x=x[(x.mom60>-.03)]
+            x['score']=.25*x.r_lowvol20+.20*x.r_liq+.20*x.r_mom60+.15*x.r_mom120+.20*x.qscore.rank(pct=True)
+    else: raise ValueError(s)
+    return x.sort_values('score',ascending=False).head(agent['max_names'])
+
 base.build_weekly_panel=build_weekly_panel_fast
+base.target_for=target_for_no_future
 base.main()
