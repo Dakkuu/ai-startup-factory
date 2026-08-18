@@ -1,0 +1,29 @@
+name: A-share 10y market context
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  context:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy
+      - name: Build ten-year market context
+        working-directory: a-share-backtest
+        run: python run_10y_market_context.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-10y-market-context
+          path: a-share-backtest/results_10y_context/
+          if-no-files-found: warn
+          retention-days: 7
