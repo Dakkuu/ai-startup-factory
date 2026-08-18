@@ -1,0 +1,38 @@
+name: A-share 10y era-aware backtest
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pandas numpy scikit-learn lightgbm
+      - name: Run era-aware 10-year backtest
+        working-directory: a-share-backtest
+        run: python run_10y_era_backtest.py
+      - name: Show audit and leaderboard
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          if [ -f results_10y_era/audit.csv ]; then cat results_10y_era/audit.csv; fi
+          if [ -f results_10y_era/summary.csv ]; then cat results_10y_era/summary.csv; fi
+          if [ -f results_10y_era/annual_returns.csv ]; then cat results_10y_era/annual_returns.csv; fi
+          if [ -f results_10y_era/robustness.csv ]; then cat results_10y_era/robustness.csv; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-10y-era-aware-results
+          path: a-share-backtest/results_10y_era/
+          if-no-files-found: warn
+          retention-days: 7
