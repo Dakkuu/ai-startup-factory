@@ -22,7 +22,7 @@ jobs:
           pip install pandas numpy
       - name: Run behavioral news backtest
         working-directory: a-share-backtest
-        run: python run_behavioral_news_backtest_fixed.py
+        run: python run_behavioral_news_backtest_full_universe.py
       - name: Show audits and leaderboard
         if: always()
         working-directory: a-share-backtest
@@ -35,7 +35,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: a-share-behavioral-news-results
+          name: a-share-behavioral-news-full-universe-results
           path: a-share-backtest/results_behavioral_news/
           if-no-files-found: warn
           retention-days: 7
