@@ -24,29 +24,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install data and research dependencies
+      - name: Install research dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install baostock pandas numpy pyarrow requests
-      - name: Run point-in-time backtest from GitHub Release bars
+          pip install pandas numpy
+      - name: Run frozen point-in-time Qlib backtest
         working-directory: a-share-backtest
         env:
-          BT_START: '2025-08-01'
-          BT_END: '2026-08-18'
-        run: python run_release_backtest.py
-      - name: Show leaderboard
+          QLIB_RELEASE_TAG: '2026-07-29'
+          BT_START: '2025-07-30'
+          BT_END: '2026-07-29'
+        run: python run_backtest_qlib.py
+      - name: Show audit and leaderboard
         if: always()
         working-directory: a-share-backtest
         run: |
-          if [ -f results/summary.csv ]; then cat results/summary.csv; fi
-          if [ -f results/metadata.csv ]; then cat results/metadata.csv; fi
-      - name: Upload results and cached market data
+          if [ -f results_qlib/universe_audit.csv ]; then cat results_qlib/universe_audit.csv; fi
+          if [ -f results_qlib/summary.csv ]; then cat results_qlib/summary.csv; fi
+          if [ -f results_qlib/segments.csv ]; then cat results_qlib/segments.csv; fi
+      - name: Upload audited results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: a-share-backtest-results
+          name: a-share-backtest-qlib-results
           path: |
-            a-share-backtest/results/
-            a-share-backtest/data/
+            a-share-backtest/results_qlib/
           if-no-files-found: warn
           retention-days: 7
