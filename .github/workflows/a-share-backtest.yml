@@ -28,26 +28,28 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pandas numpy
-      - name: Run frozen point-in-time Qlib backtest
+      - name: Run hard-audited frozen Qlib backtest
         working-directory: a-share-backtest
         env:
           QLIB_RELEASE_TAG: '2026-07-29'
           BT_START: '2025-07-30'
           BT_END: '2026-07-29'
-        run: python run_backtest_qlib.py
-      - name: Show audit and leaderboard
+        run: python run_backtest_qlib_audited.py
+      - name: Show all audits and leaderboard
         if: always()
         working-directory: a-share-backtest
         run: |
-          if [ -f results_qlib/universe_audit.csv ]; then cat results_qlib/universe_audit.csv; fi
-          if [ -f results_qlib/summary.csv ]; then cat results_qlib/summary.csv; fi
-          if [ -f results_qlib/segments.csv ]; then cat results_qlib/segments.csv; fi
-      - name: Upload audited results
+          if [ -f results_qlib_audited/universe_audit.csv ]; then cat results_qlib_audited/universe_audit.csv; fi
+          if [ -f results_qlib_audited/timing_audit.csv ]; then cat results_qlib_audited/timing_audit.csv; fi
+          if [ -f results_qlib_audited/summary.csv ]; then cat results_qlib_audited/summary.csv; fi
+          if [ -f results_qlib_audited/segments.csv ]; then cat results_qlib_audited/segments.csv; fi
+          if [ -f results_qlib_audited/robustness.csv ]; then cat results_qlib_audited/robustness.csv; fi
+      - name: Upload hard-audited results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: a-share-backtest-qlib-results
+          name: a-share-backtest-qlib-hard-audited-results
           path: |
-            a-share-backtest/results_qlib/
+            a-share-backtest/results_qlib_audited/
           if-no-files-found: warn
           retention-days: 7
