@@ -1,0 +1,41 @@
+name: A-share behavioral news backtest
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy
+      - name: Run behavioral news backtest
+        working-directory: a-share-backtest
+        run: python run_behavioral_news_backtest.py
+      - name: Show audits and leaderboard
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          if [ -f results_behavioral_news/audit.csv ]; then cat results_behavioral_news/audit.csv; fi
+          if [ -f results_behavioral_news/summary.csv ]; then cat results_behavioral_news/summary.csv; fi
+          if [ -f results_behavioral_news/segments.csv ]; then cat results_behavioral_news/segments.csv; fi
+          if [ -f results_behavioral_news/robustness.csv ]; then cat results_behavioral_news/robustness.csv; fi
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a-share-behavioral-news-results
+          path: a-share-backtest/results_behavioral_news/
+          if-no-files-found: warn
+          retention-days: 7
