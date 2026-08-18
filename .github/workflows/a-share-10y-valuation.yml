@@ -1,0 +1,29 @@
+name: A-share 10y valuation context
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  valuation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas akshare
+      - name: Inspect all-A historical valuation
+        working-directory: a-share-backtest
+        run: python inspect_10y_valuation.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-10y-valuation
+          path: a-share-backtest/valuation_raw.csv
+          if-no-files-found: warn
+          retention-days: 7
