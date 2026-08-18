@@ -20,7 +20,7 @@ jobs:
         run: pip install pandas numpy scikit-learn lightgbm
       - name: Run era-aware 10-year backtest
         working-directory: a-share-backtest
-        run: python run_10y_era_backtest_v2.py
+        run: python run_10y_era_backtest_fast.py
       - name: Show audit and leaderboard
         if: always()
         working-directory: a-share-backtest
