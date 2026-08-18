@@ -1,0 +1,50 @@
+name: A-share historical backtest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/a-share-backtest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout isolated research branch
+        uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install data and research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install baostock pandas numpy pyarrow
+      - name: Run point-in-time backtest
+        working-directory: a-share-backtest
+        env:
+          BT_START: '2025-08-01'
+          BT_END: '2026-08-18'
+        run: python run_backtest.py
+      - name: Show leaderboard
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          if [ -f results/summary.csv ]; then cat results/summary.csv; fi
+      - name: Upload results and cached market data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a-share-backtest-results
+          path: |
+            a-share-backtest/results/
+            a-share-backtest/data/
+          if-no-files-found: warn
+          retention-days: 7
