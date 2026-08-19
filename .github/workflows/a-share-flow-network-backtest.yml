@@ -1,0 +1,37 @@
+name: A-share 10y flow-network backtest
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pandas numpy scikit-learn akshare
+      - name: Run A-share flow-network backtest
+        working-directory: a-share-backtest
+        run: python run_10y_a_share_flow_network.py
+      - name: Show audit and leaderboard
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          if [ -f results_10y_flow_network/audit.csv ]; then echo '=== AUDIT FILE ==='; cat results_10y_flow_network/audit.csv; fi
+          if [ -f results_10y_flow_network/summary.csv ]; then echo '=== SUMMARY FILE ==='; cat results_10y_flow_network/summary.csv; fi
+          if [ -f results_10y_flow_network/robustness.csv ]; then echo '=== ROBUSTNESS FILE ==='; cat results_10y_flow_network/robustness.csv; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-10y-flow-network-results
+          path: a-share-backtest/results_10y_flow_network/
+          if-no-files-found: warn
+          retention-days: 7
