@@ -1,0 +1,31 @@
+name: A-share V3 behavior-tree backtest
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+jobs:
+  backtest:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/run-v3-behavior-tree')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scikit-learn akshare
+      - name: Run frozen V3 research-validation-holdout
+        run: python run_10y_a_share_v3_behavior_tree.py
+        working-directory: a-share-backtest
+      - name: Show results
+        run: |
+          for f in audit.csv dev_leaf_table.csv selected_leaves.csv summary.csv tree.txt; do
+            echo "=== $f ==="; test -f a-share-backtest/results_10y_v3_behavior_tree/$f && cat a-share-backtest/results_10y_v3_behavior_tree/$f || true
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a-share-v3-behavior-tree-results
+          path: a-share-backtest/results_10y_v3_behavior_tree/
+          retention-days: 7
