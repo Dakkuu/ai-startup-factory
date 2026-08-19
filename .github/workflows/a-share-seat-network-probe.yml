@@ -1,0 +1,19 @@
+name: A-share LHB seat-network probe
+on:
+  pull_request:
+    types: [reopened]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install akshare pandas
+      - run: python probe_lhb_seat_history.py
+        working-directory: a-share-backtest
