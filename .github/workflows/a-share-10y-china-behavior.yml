@@ -1,0 +1,38 @@
+name: A-share 10y China behavior daily backtest
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pandas numpy scikit-learn
+      - name: Run China-behavior daily ten-year backtest
+        working-directory: a-share-backtest
+        run: python run_10y_china_behavior_daily.py
+      - name: Show audit and result
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          if [ -f results_10y_china_behavior/audit.csv ]; then echo '=== AUDIT ==='; cat results_10y_china_behavior/audit.csv; fi
+          if [ -f results_10y_china_behavior/summary.csv ]; then echo '=== SUMMARY ==='; cat results_10y_china_behavior/summary.csv; fi
+          if [ -f results_10y_china_behavior/annual_returns.csv ]; then echo '=== ANNUAL ==='; cat results_10y_china_behavior/annual_returns.csv; fi
+          if [ -f results_10y_china_behavior/robustness.csv ]; then echo '=== ROBUSTNESS ==='; cat results_10y_china_behavior/robustness.csv; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-10y-china-behavior-daily-results
+          path: a-share-backtest/results_10y_china_behavior/
+          if-no-files-found: warn
+          retention-days: 7
