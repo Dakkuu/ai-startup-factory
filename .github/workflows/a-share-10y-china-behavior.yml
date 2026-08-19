@@ -20,7 +20,7 @@ jobs:
         run: pip install pandas numpy scikit-learn
       - name: Run China-behavior daily ten-year backtest
         working-directory: a-share-backtest
-        run: python run_10y_china_behavior_daily.py
+        run: python run_10y_china_behavior_daily_v2.py
       - name: Show audit and result
         if: always()
         working-directory: a-share-backtest
