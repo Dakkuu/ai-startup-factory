@@ -2,11 +2,13 @@ name: A-share V3 behavior-tree backtest
 on:
   issue_comment:
     types: [created]
+  pull_request:
+    types: [reopened]
 permissions:
   contents: read
 jobs:
   backtest:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/run-v3-behavior-tree')
+    if: github.event_name == 'pull_request' || (github.event.issue.pull_request && contains(github.event.comment.body, '/run-v3-behavior-tree'))
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
