@@ -1,0 +1,28 @@
+name: A-share V4 regime-residual backtest
+on:
+  pull_request:
+    types: [reopened]
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scikit-learn akshare
+      - name: Run frozen V4 regime-residual model
+        run: python run_10y_a_share_v4_regime_residual.py
+        working-directory: a-share-backtest
+      - name: Show results
+        run: |
+          for f in audit.csv summary.csv; do echo "=== $f ==="; test -f a-share-backtest/results_10y_v4_regime_residual/$f && cat a-share-backtest/results_10y_v4_regime_residual/$f || true; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: a-share-v4-regime-residual-results
+          path: a-share-backtest/results_10y_v4_regime_residual/
+          retention-days: 7
