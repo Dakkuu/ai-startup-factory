@@ -49,9 +49,6 @@ def build_weekly_panel_fast(cal,m):
         sig=z.reindex(signal_dates)
         ex=z.reindex(exec_dates).reset_index(drop=True)
         nex=z.reindex(next_exec_dates).reset_index(drop=True)
-        # The panel may include execution-day fields, but validity for SIGNAL RANKING
-        # is based on signal-day information only. Missing/suspended execution-day
-        # data must cause an order failure later, never a replacement pick today.
         valid=active_s & (~pd.isna(exec_dates))
         valid &= np.isfinite(sig[needed+['close']].to_numpy()).all(axis=1)
         if not valid.any(): continue
@@ -96,8 +93,6 @@ def build_weekly_panel_fast(cal,m):
 
 def target_for_no_future(g,state,agent,qscore):
     x=g.copy();x['qscore']=qscore
-    # IMPORTANT: this filter uses signal-day liquidity only. Do NOT inspect exec_open
-    # here. Tomorrow's suspension/limit lock is resolved by the execution layer.
     x=x[(x.liq_ma20>=base.MIN_LIQ)].copy()
     s=agent['strategy'];reg=state['regime']
     if s=='01_defensive_institution':
@@ -143,4 +138,6 @@ def target_for_no_future(g,state,agent,qscore):
 
 base.build_weekly_panel=build_weekly_panel_fast
 base.target_for=target_for_no_future
-base.main()
+
+if __name__ == '__main__':
+    base.main()
