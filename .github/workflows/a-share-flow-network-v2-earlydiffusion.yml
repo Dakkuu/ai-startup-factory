@@ -1,0 +1,36 @@
+name: A-share V2 early-theme-diffusion backtest
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scikit-learn akshare
+      - name: Run frozen V2 early-diffusion backtest
+        working-directory: a-share-backtest
+        run: python run_10y_a_share_flow_network_v2_earlydiffusion.py
+      - name: Show V2 results
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          if [ -f results_10y_flow_network_v2_earlydiffusion/audit.csv ]; then echo '=== AUDIT ==='; cat results_10y_flow_network_v2_earlydiffusion/audit.csv; fi
+          if [ -f results_10y_flow_network_v2_earlydiffusion/summary.csv ]; then echo '=== SUMMARY ==='; cat results_10y_flow_network_v2_earlydiffusion/summary.csv; fi
+          if [ -f results_10y_flow_network_v2_earlydiffusion/period_metrics.csv ]; then echo '=== PERIODS ==='; cat results_10y_flow_network_v2_earlydiffusion/period_metrics.csv; fi
+          if [ -f results_10y_flow_network_v2_earlydiffusion/gross_signal_diagnostics.csv ]; then echo '=== GROSS ==='; cat results_10y_flow_network_v2_earlydiffusion/gross_signal_diagnostics.csv; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-v2-early-diffusion-results
+          path: a-share-backtest/results_10y_flow_network_v2_earlydiffusion/
+          retention-days: 7
