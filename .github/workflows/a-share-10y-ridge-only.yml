@@ -1,0 +1,38 @@
+name: A-share 10y always-Ridge backtest
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pandas numpy scikit-learn lightgbm
+      - name: Run always-Ridge ten-year backtest
+        working-directory: a-share-backtest
+        run: python run_10y_always_ridge.py
+      - name: Show result
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          if [ -f results_10y_ridge/audit.csv ]; then cat results_10y_ridge/audit.csv; fi
+          if [ -f results_10y_ridge/summary.csv ]; then cat results_10y_ridge/summary.csv; fi
+          if [ -f results_10y_ridge/annual_returns.csv ]; then cat results_10y_ridge/annual_returns.csv; fi
+          if [ -f results_10y_ridge/robustness.csv ]; then cat results_10y_ridge/robustness.csv; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-10y-always-ridge-results
+          path: a-share-backtest/results_10y_ridge/
+          if-no-files-found: warn
+          retention-days: 7
