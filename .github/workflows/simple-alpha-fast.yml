@@ -1,63 +1,35 @@
-name: Maximum Strict A-share Audit
+name: Mega 5x A-share Search
 on:
   pull_request:
     branches: [simple-alpha-base]
 permissions:
   contents: read
 jobs:
-  internal-audit:
+  mega-price:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: simple-alpha-fast
+          ref: mega-opt-5x
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
-      - name: Run maximum strict internal audit
+      - name: Run large price-risk factor search
         working-directory: a-share-backtest
-        run: python run_10y_max_audit_fixed.py
-      - name: Show internal verdict
+        run: python run_10y_mega_price_search.py
+      - name: Show verdict
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_max_audit/manifest_and_verdict.csv results_max_audit/gates.csv results_max_audit/phase_offsets.csv results_max_audit/hold_grid.csv results_max_audit/execution_delay.csv results_max_audit/bootstrap_ci.csv results_max_audit/deflated_sharpe.csv results_max_audit/pbo.csv results_max_audit/reality_check.csv results_max_audit/capacity.csv results_max_audit/date_windows.csv; do
+          for f in results_mega_price/audit.csv results_mega_price/exact_train_candidates.csv results_mega_price/winner_annual.csv results_mega_price/winner_costs.csv results_mega_price/winner_tail.csv results_mega_price/exploratory_fullsample_top20_fast.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: maximum-strict-internal-audit
-          path: a-share-backtest/results_max_audit/
-          if-no-files-found: warn
-          retention-days: 14
-  external-audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: simple-alpha-fast
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels baostock beautifulsoup4 lxml requests
-      - name: Run external PIT ST and factor audit
-        working-directory: a-share-backtest
-        run: python run_10y_external_audit.py
-      - name: Show external verdict
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_external_audit/external_verdict.csv results_external_audit/external_gates.csv results_external_audit/pit_st_summary.csv results_external_audit/cross_source_summary.csv results_external_audit/external_factor_regression.csv results_external_audit/baostock_universe_coverage.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: maximum-strict-external-audit
-          path: a-share-backtest/results_external_audit/
+          name: mega-price-search
+          path: a-share-backtest/results_mega_price/
           if-no-files-found: warn
           retention-days: 14
