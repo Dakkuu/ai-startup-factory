@@ -4,10 +4,13 @@ on:
     branches: [simple-alpha-base]
 permissions:
   contents: read
+concurrency:
+  group: alpha500-research
+  cancel-in-progress: true
 jobs:
-  probe:
+  alpha500:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
@@ -15,21 +18,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pandas requests
-      - name: Probe DoltHub PIT tables
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run PIT size-value high-return search
         working-directory: a-share-backtest
-        run: python probe_dolthub_tables.py
-      - name: Show probe
+        run: python run_10y_alpha500_size_value.py
+      - name: Show alpha500 verdict
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_alpha500_probe/tables.csv results_alpha500_probe/schema_hits.csv; do
+          for f in results_alpha500_size_value/verdict.csv results_alpha500_size_value/source_selected.csv results_alpha500_size_value/pit_coverage.csv results_alpha500_size_value/target_hits.csv results_alpha500_size_value/fullsample_best_exploratory.csv results_alpha500_size_value/train_selected_best.csv results_alpha500_size_value/exact_candidates.csv results_alpha500_size_value/aggressive_exact.csv results_alpha500_size_value/winner_costs.csv results_alpha500_size_value/winner_neighborhood.csv results_alpha500_size_value/winner_capacity.csv results_alpha500_size_value/winner_tail.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: alpha500-dolthub-probe
-          path: a-share-backtest/results_alpha500_probe/
+          name: alpha500-size-value-results
+          path: a-share-backtest/results_alpha500_size_value/
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 14
