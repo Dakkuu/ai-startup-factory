@@ -22,48 +22,24 @@ jobs:
       - name: Rerun frozen strategy with corrected volume units
         working-directory: a-share-backtest
         run: python run_10y_volume_fix_baseline.py
-      - name: Show corrected baseline
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_volume_unit_fix/verdict.csv results_volume_unit_fix/unit_conversion.csv results_volume_unit_fix/old_vs_corrected.csv results_volume_unit_fix/corrected_costs.csv results_volume_unit_fix/corrected_capacity.csv results_volume_unit_fix/corrected_tail.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: corrected-volume-baseline
-          path: a-share-backtest/results_volume_unit_fix/
-          if-no-files-found: warn
-          retention-days: 14
+        with: {name: corrected-volume-baseline, path: a-share-backtest/results_volume_unit_fix/, if-no-files-found: warn, retention-days: 14}
   alpha500:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: alpha-500-research
+        with: {ref: alpha-500-research}
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        with: {python-version: '3.12'}
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
       - name: Run PIT size-value high-return search with corrected volume units
         working-directory: a-share-backtest
         run: python run_10y_alpha500_size_value_fixed.py
-      - name: Show alpha500 verdict
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_alpha500_size_value/verdict.csv results_alpha500_size_value/source_selected.csv results_alpha500_size_value/source_candidates.csv results_alpha500_size_value/pit_coverage.csv results_alpha500_size_value/target_hits.csv results_alpha500_size_value/fullsample_best_exploratory.csv results_alpha500_size_value/train_selected_best.csv results_alpha500_size_value/exact_candidates.csv results_alpha500_size_value/aggressive_exact.csv results_alpha500_size_value/winner_costs.csv results_alpha500_size_value/winner_neighborhood.csv results_alpha500_size_value/winner_capacity.csv results_alpha500_size_value/winner_tail.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: alpha500-size-value-results
-          path: a-share-backtest/results_alpha500_size_value/
-          if-no-files-found: warn
-          retention-days: 14
+        with: {name: alpha500-size-value-results, path: a-share-backtest/results_alpha500_size_value/, if-no-files-found: warn, retention-days: 14}
   alpha-discovery-qv:
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -157,10 +133,6 @@ jobs:
       - name: Run post-screen direction and sweet-spot Discovery B
         working-directory: a-share-backtest
         run: python run_10y_alpha_stage2.py discovery_b
-      - name: Show stage2 discovery B
-        if: always()
-        working-directory: a-share-backtest
-        run: for f in results_alpha_stage2_discovery_b/manifest.csv results_alpha_stage2_discovery_b/screen.csv results_alpha_stage2_discovery_b/grid.csv results_alpha_stage2_discovery_b/winner_train_selected.csv results_alpha_stage2_discovery_b/winner_costs.csv results_alpha_stage2_discovery_b/winner_annual.csv results_alpha_stage2_discovery_b/winner_robust.csv results_alpha_stage2_discovery_b/audit.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: alpha-stage2-discovery-b-results, path: a-share-backtest/results_alpha_stage2_discovery_b/, if-no-files-found: warn, retention-days: 14}
@@ -177,10 +149,6 @@ jobs:
       - name: Run training-only concentration holding and buffer surface
         working-directory: a-share-backtest
         run: python run_10y_alpha_stage2.py concentration
-      - name: Show stage2 concentration
-        if: always()
-        working-directory: a-share-backtest
-        run: for f in results_alpha_stage2_concentration/grid.csv results_alpha_stage2_concentration/winner_train_selected.csv results_alpha_stage2_concentration/winner_costs.csv results_alpha_stage2_concentration/winner_annual.csv results_alpha_stage2_concentration/winner_robust.csv results_alpha_stage2_concentration/audit.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: alpha-stage2-concentration-results, path: a-share-backtest/results_alpha_stage2_concentration/, if-no-files-found: warn, retention-days: 14}
@@ -197,10 +165,26 @@ jobs:
       - name: Run static training-IC ensemble
         working-directory: a-share-backtest
         run: python run_10y_alpha_stage2.py ensemble
-      - name: Show stage2 ensemble
-        if: always()
-        working-directory: a-share-backtest
-        run: for f in results_alpha_stage2_ensemble/training_factor_stats.csv results_alpha_stage2_ensemble/manifest.csv results_alpha_stage2_ensemble/grid.csv results_alpha_stage2_ensemble/winner_train_selected.csv results_alpha_stage2_ensemble/winner_costs.csv results_alpha_stage2_ensemble/winner_annual.csv results_alpha_stage2_ensemble/winner_robust.csv results_alpha_stage2_ensemble/audit.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: alpha-stage2-ensemble-results, path: a-share-backtest/results_alpha_stage2_ensemble/, if-no-files-found: warn, retention-days: 14}
+  stage2-frozen-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Stress test frozen anti-lottery stage2 candidate
+        working-directory: a-share-backtest
+        run: python run_10y_stage2_frozen_audit.py
+      - name: Show frozen audit
+        if: always()
+        working-directory: a-share-backtest
+        run: for f in results_stage2_frozen_audit/verdict.csv results_stage2_frozen_audit/gates.csv results_stage2_frozen_audit/phase_offsets.csv results_stage2_frozen_audit/costs.csv results_stage2_frozen_audit/capacity.csv results_stage2_frozen_audit/robust.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: stage2-frozen-audit-results, path: a-share-backtest/results_stage2_frozen_audit/, if-no-files-found: warn, retention-days: 14}
