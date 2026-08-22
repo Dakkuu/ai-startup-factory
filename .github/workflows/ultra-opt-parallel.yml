@@ -1,0 +1,44 @@
+name: Ultra Structural A-share Optimization Parallel
+on:
+  pull_request:
+    branches: [ultra-opt-base]
+permissions:
+  contents: read
+jobs:
+  ultra-shard:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0,1,2]
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ultra-opt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
+      - name: Run frozen liquidity shard
+        working-directory: a-share-backtest
+        env:
+          ULTRA_LIQ_SHARD: ${{ matrix.shard }}
+        run: python run_10y_ultra_opt_shard.py
+      - name: Show shard winner
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for d in results_ultra_opt_liq*; do
+            [ -d "$d" ] || continue
+            for f in "$d"/audit.csv "$d"/exact_top15.csv "$d"/train_selected_winner.csv "$d"/winner_annual.csv "$d"/winner_blocks.csv "$d"/winner_costs.csv "$d"/winner_tail_robustness.csv; do
+              if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+            done
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ultra-structural-shard-${{ matrix.shard }}
+          path: a-share-backtest/results_ultra_opt_liq*/
+          if-no-files-found: warn
+          retention-days: 14
