@@ -45,7 +45,6 @@ def main():
     keepcols=['signal_date','trade_date','code','liq20','liq_rank_pct','exec_open','exec_high','exec_low','exec_volume','exec_factor','ivol40','ivol60','ivol80','eff120','skew40','rmom126','tstat120','posratio120','dd120','mom120raw','volshock','age_days','board']
     p=p[keepcols].copy(); bm=market_close.loc[sim.START:sim.END].dropna()
 
-    # 1) Exact structural comparison at the unchanged construction.
     base_rows=[]; base_cache={}
     for sig,pool in BASE_CANDIDATES:
         q=grand.rerank(p,sig,pool)
@@ -54,7 +53,6 @@ def main():
         del q
     base_df=pd.DataFrame(base_rows); base_df.to_csv(OUT/'base_exact.csv',index=False)
 
-    # 2) Exact local construction + weight surface ONLY around the simple anchor-liq70 structure.
     surf=[]; surf_cache={}
     for w in WEIGHTS:
         q=anchor_weighted(p,'liq70',w)
@@ -63,33 +61,26 @@ def main():
                 for e,k in BUFFERS:
                     print('SURFACE',w,n,h,e,k,flush=True)
                     st,eq,tr,tm=exact(q,h,n,e,k,cal,members,bm); st.update({'signal':'anchor','pool':'liq70','ivol_weight':w}); surf.append(st)
-                    # Cache only train-leading candidates later? Store identifiers and objects only for central/small set to save memory.
                     if (w==.60 and n==20 and h==60 and e==.10 and k==.30): surf_cache[('central',)]=(eq,tr,tm)
         del q
     s=pd.DataFrame(surf); s.to_csv(OUT/'anchor_liq70_surface.csv',index=False)
 
-    # Training-only ranking with a mild drawdown guard. Validation is never used for selection.
     eligible=s[(s.train_return>0)&(s.train_mdd>-0.30)&(s.positions_max<=s.n_hold)].copy()
     eligible['train_score']=eligible.train_cagr - .25*eligible.train_mdd.abs()
     ranked=eligible.sort_values(['train_score','train_cagr'],ascending=[False,False])
-    # Pick best training row, then rerun exactly to hold its equity/trades.
     best=ranked.iloc[0]
     bw=float(best.ivol_weight); bn=int(best.n_hold); bh=int(best.hold_days); be=float(best.entry_pct); bk=float(best.keep_pct)
     qb=anchor_weighted(p,'liq70',bw); bst,beq,btr,btm=exact(qb,bh,bn,be,bk,cal,members,bm); bst.update({'signal':'anchor','pool':'liq70','ivol_weight':bw,'train_score':float(best.train_score)})
     pd.DataFrame([bst]).to_csv(OUT/'train_selected_winner.csv',index=False)
 
-    # 3) Robust central candidate is pre-specified structurally: w=.60,N20,H60,10/30.
-    # This is the candidate that crossed +200% in discovery; do not replace it merely because a nearby train point is larger.
     qc=anchor_weighted(p,'liq70',.60); cst,ceq,ctr,ctm=exact(qc,60,20,.10,.30,cal,members,bm); cst.update({'signal':'anchor','pool':'liq70','ivol_weight':.60})
     pd.DataFrame([cst]).to_csv(OUT/'central_summary.csv',index=False)
 
-    # 4) Parameter plateau summaries, no validation-based selection.
     by_weight=s.groupby('ivol_weight').agg(points=('total_return','size'),median_return=('total_return','median'),min_return=('total_return','min'),max_return=('total_return','max'),median_train_cagr=('train_cagr','median'),min_train_cagr=('train_cagr','min'),median_validation_return=('validation_return','median'),min_validation_return=('validation_return','min'),median_mdd=('max_drawdown','median'),worst_mdd=('max_drawdown','min')).reset_index()
     by_weight.to_csv(OUT/'surface_by_weight.csv',index=False)
     by_hold=s.groupby('hold_days').agg(points=('total_return','size'),median_return=('total_return','median'),min_return=('total_return','min'),max_return=('total_return','max'),median_train_cagr=('train_cagr','median'),median_validation_return=('validation_return','median'),median_mdd=('max_drawdown','median')).reset_index(); by_hold.to_csv(OUT/'surface_by_hold.csv',index=False)
     by_n=s.groupby('n_hold').agg(points=('total_return','size'),median_return=('total_return','median'),min_return=('total_return','min'),max_return=('total_return','max'),median_train_cagr=('train_cagr','median'),median_validation_return=('validation_return','median'),median_mdd=('max_drawdown','median')).reset_index(); by_n.to_csv(OUT/'surface_by_n.csv',index=False)
 
-    # 5) Exact diagnostics for central (not train-selected) candidate.
     ann=sim.annual_returns(ceq); ann.to_csv(OUT/'central_annual.csv',index=False)
     rob=sim.robustness(ceq,ctr); pd.DataFrame([rob]).to_csv(OUT/'central_robust.csv',index=False)
     blocks=[]
@@ -101,8 +92,6 @@ def main():
         st,_,_,_=exact(qc,60,20,.10,.30,cal,members,bm,cm); st.update({'signal':'anchor','pool':'liq70','ivol_weight':.60}); costs.append(st)
     pd.DataFrame(costs).to_csv(OUT/'central_cost.csv',index=False)
 
-    # 6) Simple 50/50 two-sleeve diversification tests, using exact daily equity curves.
-    # Each sleeve starts with 1m; normalize to 1.0 then average, equivalent to splitting capital 50/50.
     mixes=[]
     def mix_stats(name,eq1,eq2):
         a=eq1.set_index(pd.to_datetime(eq1.trade_date)).equity.astype(float).sort_index()
@@ -115,7 +104,8 @@ def main():
     mixes.append(mix_stats('central50_old_anchor50',ceq,ctrl_eq)); pd.DataFrame(mixes).to_csv(OUT/'mixes.csv',index=False)
 
     bad=int((pd.to_datetime(ctm.signal_date)>=pd.to_datetime(ctm.trade_date)).sum()) if len(ctm) else 0
-    audit={**ua,'market_factor':market_code,'base_candidates':'|'.join(f'{a}:{b}' for a,b in BASE_CANDIDATES),'surface_points':len(s),'surface':'liq70 anchor only; ivol weights .55/.60/.65; N15/20/25; hold50/60/70; buffers 5/20,10/30,15/40','selection':'train-selected row uses 2016-2021 only; central candidate fixed from prior structural discovery; 2022-2026 is reused validation NOT untouched OOS','execution':'daily MTM deterministic hard execution; trapped positions occupy slots','timing_violations':bad,'central_positions_within_target':int(cst.positions_max<=cst.n_hold)}
+    central_within=int(cst['positions_max']<=cst['n_hold'])
+    audit={**ua,'market_factor':market_code,'base_candidates':'|'.join(f'{a}:{b}' for a,b in BASE_CANDIDATES),'surface_points':len(s),'surface':'liq70 anchor only; ivol weights .55/.60/.65; N15/20/25; hold50/60/70; buffers 5/20,10/30,15/40','selection':'train-selected row uses 2016-2021 only; central candidate fixed from prior structural discovery; 2022-2026 is reused validation NOT untouched OOS','execution':'daily MTM deterministic hard execution; trapped positions occupy slots','timing_violations':bad,'central_positions_within_target':central_within}
     pd.DataFrame([audit]).to_csv(OUT/'audit.csv',index=False)
     if bad or not audit['central_positions_within_target']: raise RuntimeError('balanced exact audit failed')
 
