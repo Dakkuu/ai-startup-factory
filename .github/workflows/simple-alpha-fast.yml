@@ -67,165 +67,140 @@ jobs:
   alpha-discovery-qv:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    env:
-      OMP_NUM_THREADS: 4
-      OPENBLAS_NUM_THREADS: 4
-      MKL_NUM_THREADS: 4
-      NUMEXPR_NUM_THREADS: 4
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: alpha-500-research
+        with: {ref: alpha-500-research}
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        with: {python-version: '3.12'}
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
       - name: Run signal-pure Qlib price-volume Alpha Discovery A
         working-directory: a-share-backtest
         run: python run_10y_alpha_discovery_qv.py
-      - name: Show discovery evidence
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_alpha_discovery_qv/factor_manifest.csv results_alpha_discovery_qv/factor_screen.csv results_alpha_discovery_qv/factor_annual_ic.csv results_alpha_discovery_qv/factor_deciles.csv results_alpha_discovery_qv/exact_finalists.csv results_alpha_discovery_qv/winner_costs.csv results_alpha_discovery_qv/winner_annual.csv results_alpha_discovery_qv/winner_robust.csv results_alpha_discovery_qv/audit.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: alpha-discovery-qv-results
-          path: a-share-backtest/results_alpha_discovery_qv/
-          if-no-files-found: warn
-          retention-days: 14
+        with: {name: alpha-discovery-qv-results, path: a-share-backtest/results_alpha_discovery_qv/, if-no-files-found: warn, retention-days: 14}
   alpha-composites-qv:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    env:
-      OMP_NUM_THREADS: 4
-      OPENBLAS_NUM_THREADS: 4
-      MKL_NUM_THREADS: 4
-      NUMEXPR_NUM_THREADS: 4
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: alpha-500-research
+        with: {ref: alpha-500-research}
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        with: {python-version: '3.12'}
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
       - name: Run pre-registered composite Alpha families
         working-directory: a-share-backtest
         run: python run_10y_alpha_composites_qv.py
-      - name: Show composite evidence
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_alpha_composites_qv/composite_manifest.csv results_alpha_composites_qv/composite_screen.csv results_alpha_composites_qv/construction_grid.csv results_alpha_composites_qv/winner.csv results_alpha_composites_qv/winner_costs.csv results_alpha_composites_qv/winner_annual.csv results_alpha_composites_qv/winner_robust.csv results_alpha_composites_qv/audit.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: alpha-composites-qv-results
-          path: a-share-backtest/results_alpha_composites_qv/
-          if-no-files-found: warn
-          retention-days: 14
+        with: {name: alpha-composites-qv-results, path: a-share-backtest/results_alpha_composites_qv/, if-no-files-found: warn, retention-days: 14}
   alpha-adaptive-qv:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    env:
-      OMP_NUM_THREADS: 4
-      OPENBLAS_NUM_THREADS: 4
-      MKL_NUM_THREADS: 4
-      NUMEXPR_NUM_THREADS: 4
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: alpha-500-research
+        with: {ref: alpha-500-research}
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        with: {python-version: '3.12'}
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
       - name: Run causal trailing-IC adaptive factor rotation
         working-directory: a-share-backtest
         run: python run_10y_alpha_adaptive_qv.py
-      - name: Show adaptive evidence
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_alpha_adaptive_qv/adaptive_grid.csv results_alpha_adaptive_qv/winner.csv results_alpha_adaptive_qv/winner_costs.csv results_alpha_adaptive_qv/winner_annual.csv results_alpha_adaptive_qv/winner_robust.csv results_alpha_adaptive_qv/audit.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: alpha-adaptive-qv-results
-          path: a-share-backtest/results_alpha_adaptive_qv/
-          if-no-files-found: warn
-          retention-days: 14
+        with: {name: alpha-adaptive-qv-results, path: a-share-backtest/results_alpha_adaptive_qv/, if-no-files-found: warn, retention-days: 14}
   alpha-ml-walkforward:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    env:
-      OMP_NUM_THREADS: 4
-      OPENBLAS_NUM_THREADS: 4
-      MKL_NUM_THREADS: 4
-      NUMEXPR_NUM_THREADS: 4
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: alpha-500-research
+        with: {ref: alpha-500-research}
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        with: {python-version: '3.12'}
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
       - name: Run strict rolling walk-forward Ridge and LightGBM
         working-directory: a-share-backtest
         run: python run_10y_alpha_ml_walkforward.py
-      - name: Show ML evidence
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_alpha_ml_walkforward/feature_manifest.csv results_alpha_ml_walkforward/model_grid.csv results_alpha_ml_walkforward/winner.csv results_alpha_ml_walkforward/winner_costs.csv results_alpha_ml_walkforward/winner_annual.csv results_alpha_ml_walkforward/winner_robust.csv results_alpha_ml_walkforward/audit.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: alpha-ml-walkforward-results
-          path: a-share-backtest/results_alpha_ml_walkforward/
-          if-no-files-found: warn
-          retention-days: 14
+        with: {name: alpha-ml-walkforward-results, path: a-share-backtest/results_alpha_ml_walkforward/, if-no-files-found: warn, retention-days: 14}
   alpha-regime-qv:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    env:
-      OMP_NUM_THREADS: 4
-      OPENBLAS_NUM_THREADS: 4
-      MKL_NUM_THREADS: 4
-      NUMEXPR_NUM_THREADS: 4
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: alpha-500-research
+        with: {ref: alpha-500-research}
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+        with: {python-version: '3.12'}
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
       - name: Run causal market-regime conditional Alpha
         working-directory: a-share-backtest
         run: python run_10y_alpha_regime_qv.py
-      - name: Show regime evidence
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_alpha_regime_qv/market_states.csv results_alpha_regime_qv/regime_grid.csv results_alpha_regime_qv/winner.csv results_alpha_regime_qv/winner_costs.csv results_alpha_regime_qv/winner_annual.csv results_alpha_regime_qv/winner_robust.csv results_alpha_regime_qv/audit.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: alpha-regime-qv-results
-          path: a-share-backtest/results_alpha_regime_qv/
-          if-no-files-found: warn
-          retention-days: 14
+        with: {name: alpha-regime-qv-results, path: a-share-backtest/results_alpha_regime_qv/, if-no-files-found: warn, retention-days: 14}
+  stage2-discovery-b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run post-screen direction and sweet-spot Discovery B
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_stage2.py discovery_b
+      - name: Show stage2 discovery B
+        if: always()
+        working-directory: a-share-backtest
+        run: for f in results_alpha_stage2_discovery_b/manifest.csv results_alpha_stage2_discovery_b/screen.csv results_alpha_stage2_discovery_b/grid.csv results_alpha_stage2_discovery_b/winner_train_selected.csv results_alpha_stage2_discovery_b/winner_costs.csv results_alpha_stage2_discovery_b/winner_annual.csv results_alpha_stage2_discovery_b/winner_robust.csv results_alpha_stage2_discovery_b/audit.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-stage2-discovery-b-results, path: a-share-backtest/results_alpha_stage2_discovery_b/, if-no-files-found: warn, retention-days: 14}
+  stage2-concentration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run training-only concentration holding and buffer surface
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_stage2.py concentration
+      - name: Show stage2 concentration
+        if: always()
+        working-directory: a-share-backtest
+        run: for f in results_alpha_stage2_concentration/grid.csv results_alpha_stage2_concentration/winner_train_selected.csv results_alpha_stage2_concentration/winner_costs.csv results_alpha_stage2_concentration/winner_annual.csv results_alpha_stage2_concentration/winner_robust.csv results_alpha_stage2_concentration/audit.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-stage2-concentration-results, path: a-share-backtest/results_alpha_stage2_concentration/, if-no-files-found: warn, retention-days: 14}
+  stage2-ensemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run static training-IC ensemble
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_stage2.py ensemble
+      - name: Show stage2 ensemble
+        if: always()
+        working-directory: a-share-backtest
+        run: for f in results_alpha_stage2_ensemble/training_factor_stats.csv results_alpha_stage2_ensemble/manifest.csv results_alpha_stage2_ensemble/grid.csv results_alpha_stage2_ensemble/winner_train_selected.csv results_alpha_stage2_ensemble/winner_costs.csv results_alpha_stage2_ensemble/winner_annual.csv results_alpha_stage2_ensemble/winner_robust.csv results_alpha_stage2_ensemble/audit.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-stage2-ensemble-results, path: a-share-backtest/results_alpha_stage2_ensemble/, if-no-files-found: warn, retention-days: 14}
