@@ -1,33 +1,190 @@
-name: Simple Alpha Fast Lab
+name: Alpha 500 Research Lab
 on:
   pull_request:
     branches: [simple-alpha-base]
 permissions:
   contents: read
+concurrency:
+  group: alpha500-research
+  cancel-in-progress: true
 jobs:
-  backtest:
+  corrected-baseline:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: simple-alpha-fast
+          ref: alpha-500-research
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run pre-registered low-price factor
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Rerun frozen strategy with corrected volume units
         working-directory: a-share-backtest
-        run: python run_10y_lowprice.py
-      - name: Show results
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_lowprice/audit.csv results_lowprice/summary.csv results_lowprice/cost.csv results_lowprice/floor_robustness.csv results_lowprice/robust.csv results_lowprice/annual.csv; do if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi; done
+        run: python run_10y_volume_fix_baseline.py
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: simple-alpha-fast-results
-          path: a-share-backtest/results_lowprice/
-          if-no-files-found: warn
-          retention-days: 7
+        with: {name: corrected-volume-baseline, path: a-share-backtest/results_volume_unit_fix/, if-no-files-found: warn, retention-days: 14}
+  alpha500:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run PIT size-value high-return search with corrected volume units
+        working-directory: a-share-backtest
+        run: python run_10y_alpha500_size_value_fixed.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha500-size-value-results, path: a-share-backtest/results_alpha500_size_value/, if-no-files-found: warn, retention-days: 14}
+  alpha-discovery-qv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run signal-pure Qlib price-volume Alpha Discovery A
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_discovery_qv.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-discovery-qv-results, path: a-share-backtest/results_alpha_discovery_qv/, if-no-files-found: warn, retention-days: 14}
+  alpha-composites-qv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run pre-registered composite Alpha families
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_composites_qv.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-composites-qv-results, path: a-share-backtest/results_alpha_composites_qv/, if-no-files-found: warn, retention-days: 14}
+  alpha-adaptive-qv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run causal trailing-IC adaptive factor rotation
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_adaptive_qv.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-adaptive-qv-results, path: a-share-backtest/results_alpha_adaptive_qv/, if-no-files-found: warn, retention-days: 14}
+  alpha-ml-walkforward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run strict rolling walk-forward Ridge and LightGBM
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_ml_walkforward.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-ml-walkforward-results, path: a-share-backtest/results_alpha_ml_walkforward/, if-no-files-found: warn, retention-days: 14}
+  alpha-regime-qv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run causal market-regime conditional Alpha
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_regime_qv.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-regime-qv-results, path: a-share-backtest/results_alpha_regime_qv/, if-no-files-found: warn, retention-days: 14}
+  stage2-discovery-b:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run post-screen direction and sweet-spot Discovery B
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_stage2.py discovery_b
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-stage2-discovery-b-results, path: a-share-backtest/results_alpha_stage2_discovery_b/, if-no-files-found: warn, retention-days: 14}
+  stage2-concentration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run training-only concentration holding and buffer surface
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_stage2.py concentration
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-stage2-concentration-results, path: a-share-backtest/results_alpha_stage2_concentration/, if-no-files-found: warn, retention-days: 14}
+  stage2-ensemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run static training-IC ensemble
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_stage2.py ensemble
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: alpha-stage2-ensemble-results, path: a-share-backtest/results_alpha_stage2_ensemble/, if-no-files-found: warn, retention-days: 14}
+  stage2-frozen-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Stress test frozen anti-lottery stage2 candidate
+        working-directory: a-share-backtest
+        run: python run_10y_stage2_frozen_audit.py
+      - name: Show frozen audit
+        if: always()
+        working-directory: a-share-backtest
+        run: for f in results_stage2_frozen_audit/verdict.csv results_stage2_frozen_audit/gates.csv results_stage2_frozen_audit/phase_offsets.csv results_stage2_frozen_audit/costs.csv results_stage2_frozen_audit/capacity.csv results_stage2_frozen_audit/robust.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: stage2-frozen-audit-results, path: a-share-backtest/results_stage2_frozen_audit/, if-no-files-found: warn, retention-days: 14}
