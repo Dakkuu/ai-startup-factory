@@ -6,10 +6,6 @@ import run_10y_era_backtest as base
 import run_10y_alpha2f_v2 as sim
 import run_10y_skewfilter_hard as old
 
-# The chenditc CN pipeline writes Tushare daily `vol` into source `volume`.
-# Tushare A-share daily vol is measured in hands (手), 1 hand = 100 shares.
-# Qlib normalization makes adjusted_volume * factor = source_volume, so:
-# raw_shares = adjusted_volume * factor * 100.
 VOLUME_SOURCE_UNIT_SHARES = 100.0
 
 
@@ -24,6 +20,21 @@ def max_participation_shares(exec_volume: float, factor: float, participation: f
     if not np.isfinite(rawvol) or rawvol <= 0 or participation <= 0:
         return 0
     return max(0, int((rawvol*float(participation))//100)*100)
+
+
+def quote_available(r) -> bool:
+    return bool(np.isfinite([r.exec_open,r.exec_high,r.exec_low,r.exec_volume]).all() and float(r.exec_open)>0 and float(r.exec_volume)>0)
+
+
+def row_trade_allowed(r) -> bool:
+    if 'exec_can_trade' in r.index and not bool(r.exec_can_trade): return False
+    return quote_available(r)
+
+
+def row_buy_allowed(r) -> bool:
+    if not row_trade_allowed(r): return False
+    if 'exec_buy_allowed' in r.index and not bool(r.exec_buy_allowed): return False
+    return True
 
 
 def choose_det(g,current):
@@ -47,7 +58,9 @@ def hard_simulate(panel,cal,members,cost_mult=1.0):
         nav_open=cash+sum(pp.units*pp.last_price for pp in pos.values())
         for c in sorted(list(pos)):
             if c in tgt or c not in g.index: continue
-            r=g.loc[c]; locked=(np.isfinite(r.exec_open) and np.isfinite(r.exec_high) and np.isfinite(r.exec_low) and abs(float(r.exec_high)-float(r.exec_low))<1e-12 and abs(float(r.exec_open)-float(r.exec_high))<1e-12)
+            r=g.loc[c]
+            if not row_trade_allowed(r): continue
+            locked=(abs(float(r.exec_high)-float(r.exec_low))<1e-12 and abs(float(r.exec_open)-float(r.exec_high))<1e-12)
             if locked: continue
             px=float(r.exec_open)*(1-slip); gross=pos[c].units*px; cost=sim.fee(gross,'sell',td,cost_mult); oldp=pos.pop(c); cash+=gross-cost; turnover+=gross
             trades.append({'variant':'hard_v2','code':c,'entry_date':oldp.entry_date,'exit_date':td,'net_pnl':gross-cost-oldp.entry_cost,'net_return':(gross-cost)/oldp.entry_cost-1,'exit_reason':'rank_exit'})
@@ -56,16 +69,15 @@ def hard_simulate(panel,cal,members,cost_mult=1.0):
         for c in target:
             if len(pos)>=old.N_HOLD: break
             if c in pos or c not in g.index: continue
-            r=g.loc[c]; locked=(np.isfinite(r.exec_open) and np.isfinite(r.exec_high) and np.isfinite(r.exec_low) and abs(float(r.exec_high)-float(r.exec_low))<1e-12 and abs(float(r.exec_open)-float(r.exec_high))<1e-12)
+            r=g.loc[c]
+            if not row_buy_allowed(r): continue
+            locked=(abs(float(r.exec_high)-float(r.exec_low))<1e-12 and abs(float(r.exec_open)-float(r.exec_high))<1e-12)
             if locked: continue
-            factor=float(r.exec_factor) if np.isfinite(r.exec_factor) and r.exec_factor>0 else 1.0; adjpx=float(r.exec_open)*(1+slip); rawpx=adjpx/factor
-            if rawpx<=0: continue
-            rawvol=raw_share_volume(float(r.exec_volume),factor)
-            maxraw=max_participation_shares(float(r.exec_volume),factor,sim.VOLUME_PARTICIPATION)
-            shares=int(min(per,cash*.98)//(rawpx*100))*100
-            # Fail closed: if participation capacity is below one 100-share lot,
-            # maxraw is zero and the order must be rejected, never uncapped.
-            shares=min(shares,maxraw)
+            if not np.isfinite(r.exec_factor) or float(r.exec_factor)<=0: continue
+            factor=float(r.exec_factor); adjpx=float(r.exec_open)*(1+slip); rawpx=adjpx/factor
+            if not np.isfinite(rawpx) or rawpx<=0: continue
+            rawvol=raw_share_volume(float(r.exec_volume),factor); maxraw=max_participation_shares(float(r.exec_volume),factor,sim.VOLUME_PARTICIPATION)
+            shares=int(min(per,cash*.98)//(rawpx*100))*100; shares=min(shares,maxraw)
             if shares<=0: continue
             units=shares/factor; gross=units*adjpx; cost=sim.fee(gross,'buy',td,cost_mult); total=gross+cost
             if total>cash: continue
@@ -92,5 +104,4 @@ def patch():
     old.hard_simulate=hard_simulate
     return old
 
-if __name__=='__main__':
-    print({'volume_source_unit_shares':VOLUME_SOURCE_UNIT_SHARES,'example':max_participation_shares(100000,1.0,.05)})
+if __name__=='__main__': print({'volume_source_unit_shares':VOLUME_SOURCE_UNIT_SHARES})
