@@ -1,63 +1,35 @@
-name: Maximum Strict A-share Audit
+name: Alpha 500 Research Lab
 on:
   pull_request:
     branches: [simple-alpha-base]
 permissions:
   contents: read
 jobs:
-  internal-audit:
+  probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: simple-alpha-fast
+          ref: alpha-500-research
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
-      - name: Run maximum strict internal audit
+      - run: pip install pandas requests
+      - name: Probe DoltHub PIT tables
         working-directory: a-share-backtest
-        run: python run_10y_max_audit_fixed.py
-      - name: Show internal verdict
+        run: python probe_dolthub_tables.py
+      - name: Show probe
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_max_audit/manifest_and_verdict.csv results_max_audit/gates.csv results_max_audit/phase_offsets.csv results_max_audit/hold_grid.csv results_max_audit/execution_delay.csv results_max_audit/bootstrap_ci.csv results_max_audit/deflated_sharpe.csv results_max_audit/pbo.csv results_max_audit/reality_check.csv results_max_audit/capacity.csv results_max_audit/date_windows.csv; do
+          for f in results_alpha500_probe/tables.csv results_alpha500_probe/schema_hits.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: maximum-strict-internal-audit
-          path: a-share-backtest/results_max_audit/
+          name: alpha500-dolthub-probe
+          path: a-share-backtest/results_alpha500_probe/
           if-no-files-found: warn
-          retention-days: 14
-  external-audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: simple-alpha-fast
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels baostock beautifulsoup4 lxml requests
-      - name: Run external PIT ST and factor audit
-        working-directory: a-share-backtest
-        run: python run_10y_external_audit.py
-      - name: Show external verdict
-        if: always()
-        working-directory: a-share-backtest
-        run: |
-          for f in results_external_audit/external_verdict.csv results_external_audit/external_gates.csv results_external_audit/pit_st_summary.csv results_external_audit/cross_source_summary.csv results_external_audit/external_factor_regression.csv results_external_audit/baostock_universe_coverage.csv; do
-            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
-          done
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: maximum-strict-external-audit
-          path: a-share-backtest/results_external_audit/
-          if-no-files-found: warn
-          retention-days: 14
+          retention-days: 7
