@@ -1,0 +1,35 @@
+name: Ultra Structural A-share Optimization
+on:
+  pull_request:
+    branches: [ultra-opt-base]
+permissions:
+  contents: read
+jobs:
+  ultra-opt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ultra-opt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
+      - name: Run frozen ultra structural search
+        working-directory: a-share-backtest
+        run: python run_10y_ultra_opt.py
+      - name: Show results
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_ultra_opt/audit.csv results_ultra_opt/baseline_qlib.csv results_ultra_opt/exact_top15.csv results_ultra_opt/construction_exact.csv results_ultra_opt/train_selected_winner.csv results_ultra_opt/winner_annual.csv results_ultra_opt/winner_blocks.csv results_ultra_opt/winner_costs.csv results_ultra_opt/winner_tail_robustness.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ultra-structural-optimization
+          path: a-share-backtest/results_ultra_opt/
+          if-no-files-found: warn
+          retention-days: 14
