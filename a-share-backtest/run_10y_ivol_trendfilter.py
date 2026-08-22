@@ -74,10 +74,9 @@ def main():
             for h in HOLD_GRID:
                 print('RUN',f,'N',n,'H',h,flush=True)
                 st,eq,tr,tm=run(q,h,n,cal,members,bm,1.0)
-                st['filter']=f; st['benchmark_return']=br; st['excess']=st.total_return-br
+                st['filter']=f; st['benchmark_return']=br; st['excess']=st['total_return']-br
                 rows.append(st); cache[(f,n,h)]=(eq,tr,tm,q)
     grid=pd.DataFrame(rows); grid.to_csv(OUT/'grid.csv',index=False)
-    # choose using training period only
     w=grid.sort_values(['train_2016_2021_return','max_drawdown'],ascending=[False,False]).iloc[0]
     key=(str(w['filter']),int(w.n_hold),int(w.hold_days)); print('TRAIN WINNER',key,flush=True)
     eq,tr,tm,q=cache[key]
