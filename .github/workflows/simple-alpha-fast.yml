@@ -64,3 +64,31 @@ jobs:
           path: a-share-backtest/results_alpha500_size_value/
           if-no-files-found: warn
           retention-days: 14
+  alpha-discovery-qv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: alpha-500-research
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run signal-pure Qlib price-volume Alpha Discovery A
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_discovery_qv.py
+      - name: Show discovery evidence
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_alpha_discovery_qv/factor_manifest.csv results_alpha_discovery_qv/factor_screen.csv results_alpha_discovery_qv/factor_annual_ic.csv results_alpha_discovery_qv/factor_deciles.csv results_alpha_discovery_qv/exact_finalists.csv results_alpha_discovery_qv/winner_costs.csv results_alpha_discovery_qv/winner_annual.csv results_alpha_discovery_qv/winner_robust.csv results_alpha_discovery_qv/audit.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpha-discovery-qv-results
+          path: a-share-backtest/results_alpha_discovery_qv/
+          if-no-files-found: warn
+          retention-days: 14
