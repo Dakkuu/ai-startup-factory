@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+import re
 import numpy as np, pandas as pd
 import run_10y_era_backtest as base
 import run_10y_alpha2f_v2 as sim
@@ -14,14 +15,42 @@ OUT=Path('results_backward_holdout'); OUT.mkdir(exist_ok=True)
 START=pd.Timestamp('2007-01-04')
 END=pd.Timestamp('2016-07-28')
 WARM=pd.Timestamp('2005-01-01')
-
-# Frozen before observing this period's performance.
 RULE='liq top70%; remove highest 20% skew40; score=.60 low-IVOL60 rank + .40 efficiency120 rank; N20; 60d; entry10 keep30; next-open'
+STOCK_RE=re.compile(r'^(?:SH(?:600|601|603|605|688)\d{3}|SZ(?:000|001|002|003|300|301)\d{3}|BJ\d{6})$')
+
+def load_base_holdout():
+    # Period-portable fail-closed checks. These were set before any holdout
+    # strategy return was observed and depend only on basic market structure.
+    base.qb.RELEASE_TAG=base.RELEASE_TAG
+    base.qb.ROOT=Path('qlib_data')
+    base.qb.download_and_extract()
+    cal=pd.DatetimeIndex(pd.to_datetime(pd.read_csv(base.qb.ROOT/'calendars'/'day.txt',header=None)[0]))
+    m=pd.read_csv(base.qb.ROOT/'instruments'/'all.txt',sep='\t',header=None,names=['code','start','end'],usecols=[0,1,2])
+    m['code']=m.code.astype(str).str.upper(); m['start']=pd.to_datetime(m.start); m['end']=pd.to_datetime(m.end)
+    m=m[m.code.str.match(STOCK_RE)].copy(); m=m[(m.end>=WARM)&(m.start<=END)]
+    t=cal[(cal>=START)&(cal<=END)]
+    cnt=np.array([int(((m.start<=d)&(m.end>=d)).sum()) for d in t],dtype=int)
+    union=int(m[(m.end>=START)&(m.start<=END)].code.nunique())
+    entered=int(m[(m.start>START)&(m.start<=END)].code.nunique())
+    exited=int(m[(m.end>=START)&(m.end<END)].code.nunique())
+    audit={'release_tag':base.RELEASE_TAG,'start':str(START.date()),'end':str(END.date()),'union_members':union,'entered':entered,'exited':exited,'min_daily_members':int(cnt.min()),'max_daily_members':int(cnt.max()),'daily_ratio':float(cnt.max()/cnt.min()),'calendar_days':len(t)}
+    structural={
+      'calendar_gt_2000':len(t)>2000,
+      'min_daily_gt_1000':cnt.min()>1000,
+      'union_ge_max_daily':union>=cnt.max(),
+      'entered_gt_500':entered>500,
+      'exited_gt_10':exited>10,
+      'daily_ratio_1_to_2_5':1.0<=cnt.max()/cnt.min()<=2.5,
+    }
+    pd.DataFrame([audit]).to_csv(OUT/'universe_audit.csv',index=False)
+    pd.DataFrame([{'gate':k,'pass':int(v)} for k,v in structural.items()]).to_csv(OUT/'universe_gates.csv',index=False)
+    if not all(structural.values()): raise RuntimeError(f'FAIL-CLOSED holdout universe {audit} {structural}')
+    return cal,m,audit
 
 def main():
     sim.START=START; sim.END=END; sim.WARM=WARM
     base.START=START; base.END=END; base.WARM=WARM; base.OUT=OUT; v4.OUT=OUT
-    cal,members,ua=base.load_base()
+    cal,members,ua=load_base_holdout()
     market_code,market_close,_=v4.pick_market(cal)
     p=v4.build_panel(cal,members,market_close)
     p=fq.add_factors(p,cal); p=sf.add_skews(p,cal,market_close); p=grand.add_grand_fields(p,cal,members)
