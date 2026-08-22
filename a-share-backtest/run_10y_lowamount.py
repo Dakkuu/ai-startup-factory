@@ -23,14 +23,15 @@ def build(cal,members):
   if not all(f in cols for f in ['open','high','low','close','volume']):continue
   z=pd.concat(cols,axis=1).loc[WARM:END].copy()
   if z.empty:continue
-  if 'factor' not in z:z['factor']=1.;z['factor']=z.factor.replace(0,np.nan).fillna(1.)
+  if 'factor' not in z:z['factor']=1.
+  z['factor']=z.factor.replace(0,np.nan).fillna(1.)
   cnt=z.close.notna().rolling(120).sum();amt=(z.close.abs()*z.volume.abs()).rolling(20,min_periods=16).mean();sig=pd.DataFrame({'cnt':cnt.reindex(sd).to_numpy(),'amt20':amt.reindex(sd).to_numpy()});ex=z.reindex(ed).reset_index(drop=True)
   ok=active(mm,sd)&active(mm,ed)&(~pd.isna(ed))&np.asarray(sig.cnt>=120)&np.isfinite(sig[['amt20']].to_numpy()).all(1)&np.isfinite(ex[['open','high','low','volume']].to_numpy()).all(1)
   if not ok.any():continue
-  ix=np.flatnonzero(ok);fs.append(pd.DataFrame({'signal_date':sd[ix],'trade_date':ed[ix],'code':c,'amt20':sig.amt20.to_numpy()[ix].astype(float),'exec_open':ex.open.to_numpy()[ix].astype(float),'exec_high':ex.high.to_numpy()[ix].astype(float),'exec_low':ex.low.to_numpy()[ix].astype(float),'exec_volume':ex.volume.to_numpy()[ix].astype(float),'exec_factor':ex.factor.to_numpy()[ix].astype(float)}))
+  ix=np.flatnonzero(ok);a=sig.amt20.to_numpy()[ix].astype(float)
+  fs.append(pd.DataFrame({'signal_date':sd[ix],'trade_date':ed[ix],'code':c,'amt20':a,'liq20':a,'exec_open':ex.open.to_numpy()[ix].astype(float),'exec_high':ex.high.to_numpy()[ix].astype(float),'exec_low':ex.low.to_numpy()[ix].astype(float),'exec_volume':ex.volume.to_numpy()[ix].astype(float),'exec_factor':ex.factor.to_numpy()[ix].astype(float)}))
   if i%1000==0:print('histories',i,'/',len(codes),flush=True)
  p=pd.concat(fs,ignore_index=True);p['full_amt_pct']=p.groupby('signal_date').amt20.rank(pct=True,ascending=True,method='average')
- # Exclude the bottom 10% by traded amount; rank the remaining stocks from least to most traded.
  p['ivol60_pct']=np.nan;m=p.full_amt_pct>=.10;p.loc[m,'ivol60_pct']=p.loc[m].groupby('signal_date').amt20.rank(pct=True,ascending=True,method='average')
  gs=p[m].groupby('signal_date').size();print('PANEL',p.shape,'dates',p.signal_date.nunique(),'eligible median',gs.median(),flush=True)
  if p.signal_date.nunique()<480 or gs.median()<2000:raise RuntimeError('bad universe')
@@ -45,8 +46,7 @@ def main():
  s,e,t,tm=run(p,cal,members,bm);s['benchmark_return']=br;s['excess']=s['total_return']-br
  stress=[]
  for c in [2.,4.]:q,_,_,_=run(p,cal,members,bm,c);stress.append(q)
- # neighboring universe floors are diagnostics only, not used to select the core 10% floor
- floors=[];orig=p.ivol60_pct.copy()
+ floors=[]
  for floor in [.05,.10,.20]:
   q=p.copy();q['ivol60_pct']=np.nan;m=q.full_amt_pct>=floor;q.loc[m,'ivol60_pct']=q.loc[m].groupby('signal_date').amt20.rank(pct=True,ascending=True,method='average');z,_,_,_=run(q,cal,members,bm,1.,False);z['excluded_bottom_amt_pct']=floor;floors.append(z)
  r=e.equity.pct_change().dropna();x=r.copy();x.loc[x.nlargest(5).index]=0;pnl=t.net_pnl.sum();b5=t.nlargest(min(5,len(t)),'net_pnl').net_pnl.sum();rob={'base_return':s['total_return'],'without_best5_days':(1+x).prod()-1,'pnl_without_best5_trades':pnl-b5}
