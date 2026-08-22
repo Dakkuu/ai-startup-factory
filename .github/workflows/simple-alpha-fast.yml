@@ -18,7 +18,7 @@ jobs:
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
       - name: Run maximum strict internal audit
         working-directory: a-share-backtest
-        run: python run_10y_max_audit.py
+        run: python run_10y_max_audit_fixed.py
       - name: Show internal verdict
         if: always()
         working-directory: a-share-backtest
