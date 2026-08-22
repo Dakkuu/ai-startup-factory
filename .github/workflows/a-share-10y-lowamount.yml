@@ -1,8 +1,7 @@
-name: A-share simple low-amount factor
+name: A-share simple low-amount isolated
 on:
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+  push:
+    branches: [simple-alpha-lab]
 permissions:
   contents: read
 jobs:
@@ -12,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a-share-backtest
+          ref: simple-alpha-lab
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -31,7 +30,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: a-share-simple-lowamount-results
+          name: a-share-simple-lowamount-isolated-results
           path: a-share-backtest/results_lowamount/
           if-no-files-found: warn
           retention-days: 7
