@@ -16,20 +16,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run skew filter robustness surface
+      - name: Run hard deterministic skew filter audit
         working-directory: a-share-backtest
-        run: python run_10y_skewfilter_surface.py
+        run: python run_10y_skewfilter_hard.py
       - name: Show results
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_skewfilter_surface/audit.csv results_skewfilter_surface/grid.csv results_skewfilter_surface/surface.csv results_skewfilter_surface/anchor_summary.csv results_skewfilter_surface/anchor_annual.csv results_skewfilter_surface/anchor_cost.csv results_skewfilter_surface/anchor_robust.csv results_skewfilter_surface/construction.csv; do
+          for f in results_skewfilter_hard/audit.csv results_skewfilter_hard/grid.csv results_skewfilter_hard/anchor_cost.csv results_skewfilter_hard/anchor_annual.csv results_skewfilter_hard/anchor_robust.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simple-alpha-skewfilter-surface-results
-          path: a-share-backtest/results_skewfilter_surface/
+          name: simple-alpha-skewfilter-hard-results
+          path: a-share-backtest/results_skewfilter_hard/
           if-no-files-found: warn
           retention-days: 7
