@@ -16,18 +16,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run pre-registered low-price factor
+      - name: Run factor-combination and medium-long rotation experiment
         working-directory: a-share-backtest
-        run: python run_10y_lowprice.py
+        run: python run_10y_combo_rotation.py
       - name: Show results
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_lowprice/audit.csv results_lowprice/summary.csv results_lowprice/cost.csv results_lowprice/floor_robustness.csv results_lowprice/robust.csv results_lowprice/annual.csv; do if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi; done
+          for f in results_combo_rotation/audit.csv results_combo_rotation/baseline_5d.csv results_combo_rotation/grid.csv results_combo_rotation/variant_stability.csv results_combo_rotation/winner_cost_stress.csv results_combo_rotation/winner_robustness.csv results_combo_rotation/winner_annual.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simple-alpha-fast-results
-          path: a-share-backtest/results_lowprice/
+          name: simple-alpha-combo-rotation-results
+          path: a-share-backtest/results_combo_rotation/
           if-no-files-found: warn
           retention-days: 7
