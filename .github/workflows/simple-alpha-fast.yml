@@ -196,3 +196,36 @@ jobs:
           path: a-share-backtest/results_alpha_ml_walkforward/
           if-no-files-found: warn
           retention-days: 14
+  alpha-regime-qv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: alpha-500-research
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run causal market-regime conditional Alpha
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_regime_qv.py
+      - name: Show regime evidence
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_alpha_regime_qv/market_states.csv results_alpha_regime_qv/regime_grid.csv results_alpha_regime_qv/winner.csv results_alpha_regime_qv/winner_costs.csv results_alpha_regime_qv/winner_annual.csv results_alpha_regime_qv/winner_robust.csv results_alpha_regime_qv/audit.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpha-regime-qv-results
+          path: a-share-backtest/results_alpha_regime_qv/
+          if-no-files-found: warn
+          retention-days: 14
