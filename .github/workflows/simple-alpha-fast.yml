@@ -16,20 +16,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run bounded factor mining suite
+      - name: Run skew filter robustness surface
         working-directory: a-share-backtest
-        run: python run_10y_factor_mine2.py
+        run: python run_10y_skewfilter_surface.py
       - name: Show results
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_factor_mine2/audit.csv results_factor_mine2/grid.csv results_factor_mine2/stability.csv results_factor_mine2/winner_cost.csv results_factor_mine2/winner_robust.csv results_factor_mine2/winner_annual.csv; do
+          for f in results_skewfilter_surface/audit.csv results_skewfilter_surface/grid.csv results_skewfilter_surface/surface.csv results_skewfilter_surface/anchor_summary.csv results_skewfilter_surface/anchor_annual.csv results_skewfilter_surface/anchor_cost.csv results_skewfilter_surface/anchor_robust.csv results_skewfilter_surface/construction.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simple-alpha-factor-mine2-results
-          path: a-share-backtest/results_factor_mine2/
+          name: simple-alpha-skewfilter-surface-results
+          path: a-share-backtest/results_skewfilter_surface/
           if-no-files-found: warn
           retention-days: 7
