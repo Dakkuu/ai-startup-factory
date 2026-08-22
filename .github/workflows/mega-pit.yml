@@ -1,0 +1,92 @@
+name: Mega PIT Size Value Search
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mega-opt-5x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy
+      - name: Prepare Qlib universe and formal signal grid
+        working-directory: a-share-backtest
+        run: python prep_baostock_factor_codes.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: baostock-factor-prep
+          path: a-share-backtest/baostock_prep/
+          retention-days: 7
+
+  fetch:
+    needs: prep
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mega-opt-5x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy baostock
+      - uses: actions/download-artifact@v4
+        with:
+          name: baostock-factor-prep
+          path: a-share-backtest/baostock_prep
+      - name: Fetch PIT factor shard
+        working-directory: a-share-backtest
+        run: python fetch_baostock_factor_shard.py --shard ${{ matrix.shard }} --nshards 24
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baostock-factor-${{ matrix.shard }}
+          path: a-share-backtest/baostock_shard_out/
+          if-no-files-found: warn
+          retention-days: 7
+
+  search:
+    needs: fetch
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mega-opt-5x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: baostock-factor-*
+          path: a-share-backtest/baostock_shards
+          merge-multiple: true
+      - name: Run PIT size value turnover search
+        working-directory: a-share-backtest
+        run: python run_10y_baostock_factor_search.py
+      - name: Show verdict
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_mega_pit/audit.csv results_mega_pit/exact_train_candidates.csv results_mega_pit/winner_annual.csv results_mega_pit/winner_costs.csv results_mega_pit/winner_tail.csv results_mega_pit/exploratory_fullsample_top25_fast.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mega-pit-search-results
+          path: a-share-backtest/results_mega_pit/
+          if-no-files-found: warn
+          retention-days: 14
