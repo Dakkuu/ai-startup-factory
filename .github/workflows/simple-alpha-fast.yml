@@ -16,20 +16,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run concentrated Low-IVOL experiment
+      - name: Run Low-IVOL trend-gated experiment
         working-directory: a-share-backtest
-        run: python run_10y_concentration.py
+        run: python run_10y_ivol_trendfilter.py
       - name: Show results
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_concentration/audit.csv results_concentration/grid.csv results_concentration/stability.csv results_concentration/winner_cost.csv results_concentration/winner_robust.csv results_concentration/winner_annual.csv; do
+          for f in results_ivol_trendfilter/audit.csv results_ivol_trendfilter/grid.csv results_ivol_trendfilter/stability.csv results_ivol_trendfilter/winner_cost.csv results_ivol_trendfilter/winner_robust.csv results_ivol_trendfilter/winner_annual.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simple-alpha-concentration-results
-          path: a-share-backtest/results_concentration/
+          name: simple-alpha-ivol-trendfilter-results
+          path: a-share-backtest/results_ivol_trendfilter/
           if-no-files-found: warn
           retention-days: 7
