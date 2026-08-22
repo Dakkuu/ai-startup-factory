@@ -1,33 +1,35 @@
-name: Simple Alpha Fast Lab
+name: Frozen Backward Holdout Audit
 on:
   pull_request:
     branches: [simple-alpha-base]
 permissions:
   contents: read
 jobs:
-  backtest:
+  backward-holdout:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: simple-alpha-fast
+          ref: audit-backward-oos
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run pre-registered low-price factor
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
+      - name: Run frozen 2007-2016 backward holdout
         working-directory: a-share-backtest
-        run: python run_10y_lowprice.py
-      - name: Show results
+        run: python run_backward_holdout_audit.py
+      - name: Show verdict
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_lowprice/audit.csv results_lowprice/summary.csv results_lowprice/cost.csv results_lowprice/floor_robustness.csv results_lowprice/robust.csv results_lowprice/annual.csv; do if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi; done
+          for f in results_backward_holdout/verdict.csv results_backward_holdout/gates.csv results_backward_holdout/summary.csv results_backward_holdout/annual.csv results_backward_holdout/phase_offsets.csv results_backward_holdout/blocks.csv results_backward_holdout/costs.csv results_backward_holdout/delays.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simple-alpha-fast-results
-          path: a-share-backtest/results_lowprice/
+          name: frozen-backward-holdout-audit
+          path: a-share-backtest/results_backward_holdout/
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 14
