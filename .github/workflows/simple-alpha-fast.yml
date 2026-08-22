@@ -1,4 +1,4 @@
-name: Volume Unit Corrected Strict Audit
+name: Signal-Pure Maximum Strict Audit
 on:
   pull_request:
     branches: [simple-alpha-base]
@@ -11,25 +11,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: audit-volume-fix
+          ref: audit-signal-pure
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
-      - name: Run maximum audit with corrected A-share volume units
+      - name: Run signal-pure maximum audit
         working-directory: a-share-backtest
-        run: python run_10y_max_audit_volume_fixed.py
+        run: python run_10y_max_audit_signal_pure.py
       - name: Show internal verdict
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_max_audit/manifest_and_verdict.csv results_max_audit/gates.csv results_max_audit/phase_offsets.csv results_max_audit/hold_grid.csv results_max_audit/execution_delay.csv results_max_audit/capacity.csv results_max_audit/date_windows.csv; do
+          for f in results_max_audit/signal_pure_panel_audit.csv results_max_audit/manifest_and_verdict.csv results_max_audit/gates.csv results_max_audit/phase_offsets.csv results_max_audit/hold_grid.csv results_max_audit/execution_delay.csv results_max_audit/capacity.csv results_max_audit/date_windows.csv results_max_audit/deflated_sharpe.csv results_max_audit/pbo.csv results_max_audit/reality_check.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: volume-corrected-internal-audit
+          name: signal-pure-internal-audit
           path: a-share-backtest/results_max_audit/
           if-no-files-found: warn
           retention-days: 14
@@ -39,25 +39,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: audit-volume-fix
+          ref: audit-signal-pure
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels baostock beautifulsoup4 lxml requests
-      - name: Run PIT-ST and independent-source audit with corrected volume units
+      - name: Run signal-pure PIT-ST and independent-source audit
         working-directory: a-share-backtest
-        run: python run_10y_external_audit_v2_volume_fixed.py
+        run: python run_10y_external_audit_v3_signal_pure.py
       - name: Show external verdict
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_external_audit_v2/external_verdict.csv results_external_audit_v2/external_gates.csv results_external_audit_v2/pit_st_summary.csv results_external_audit_v2/pit_st_annual.csv results_external_audit_v2/cross_source_summary.csv results_external_audit_v2/external_factor_regression.csv; do
+          for f in results_external_audit_v3/signal_pure_panel_audit.csv results_external_audit_v3/external_verdict.csv results_external_audit_v3/external_gates.csv results_external_audit_v3/pit_st_summary.csv results_external_audit_v3/pit_st_annual.csv results_external_audit_v3/future_tradability_positive_control.csv results_external_audit_v3/cross_source_summary.csv results_external_audit_v3/external_factor_regression.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: volume-corrected-external-audit
-          path: a-share-backtest/results_external_audit_v2/
+          name: signal-pure-external-audit
+          path: a-share-backtest/results_external_audit_v3/
           if-no-files-found: warn
           retention-days: 14
