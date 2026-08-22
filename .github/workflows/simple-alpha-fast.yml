@@ -16,20 +16,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run grand anti-lottery optimization
+      - name: Run balanced exact optimization audit
         working-directory: a-share-backtest
-        run: python run_10y_grand_opt.py
+        run: python run_10y_balanced_exact.py
       - name: Show results
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_grand_opt/audit.csv results_grand_opt/phase1_signal_pool.csv results_grand_opt/phase2_construction.csv results_grand_opt/winner_summary.csv results_grand_opt/winner_plateau.csv results_grand_opt/winner_blocks.csv results_grand_opt/winner_annual.csv results_grand_opt/winner_cost.csv results_grand_opt/winner_robust.csv; do
+          for f in results_balanced_exact/audit.csv results_balanced_exact/base_exact.csv results_balanced_exact/central_summary.csv results_balanced_exact/train_selected_winner.csv results_balanced_exact/surface_by_weight.csv results_balanced_exact/surface_by_hold.csv results_balanced_exact/surface_by_n.csv results_balanced_exact/central_blocks.csv results_balanced_exact/central_annual.csv results_balanced_exact/central_cost.csv results_balanced_exact/central_robust.csv results_balanced_exact/mixes.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: grand-anti-lottery-optimization-results
-          path: a-share-backtest/results_grand_opt/
+          name: balanced-exact-optimization-results
+          path: a-share-backtest/results_balanced_exact/
           if-no-files-found: warn
           retention-days: 7
