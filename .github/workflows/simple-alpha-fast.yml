@@ -16,20 +16,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run coarse IVOL efficiency tilt experiment
+      - name: Run local robustness for IVOL-efficiency tilt
         working-directory: a-share-backtest
-        run: python run_10y_factor_tilt.py
+        run: python run_10y_factor_tilt_robust.py
       - name: Show results
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_factor_tilt/audit.csv results_factor_tilt/grid.csv results_factor_tilt/stability.csv results_factor_tilt/annual_all.csv results_factor_tilt/winner_cost.csv results_factor_tilt/winner_robust.csv; do
+          for f in results_factor_tilt_robust/audit.csv results_factor_tilt_robust/grid.csv results_factor_tilt_robust/stability.csv results_factor_tilt_robust/anchor_cost.csv results_factor_tilt_robust/anchor_robust.csv results_factor_tilt_robust/anchor_annual.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simple-alpha-factor-tilt-results
-          path: a-share-backtest/results_factor_tilt/
+          name: simple-alpha-factor-tilt-robust-results
+          path: a-share-backtest/results_factor_tilt_robust/
           if-no-files-found: warn
           retention-days: 7
