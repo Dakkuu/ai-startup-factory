@@ -16,20 +16,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run Low-IVOL trend-gated experiment
+      - name: Run two-stage momentum-IVOL high-return experiment
         working-directory: a-share-backtest
-        run: python run_10y_ivol_trendfilter.py
+        run: python run_10y_mom_ivol_twostage.py
       - name: Show results
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_ivol_trendfilter/audit.csv results_ivol_trendfilter/grid.csv results_ivol_trendfilter/stability.csv results_ivol_trendfilter/winner_cost.csv results_ivol_trendfilter/winner_robust.csv results_ivol_trendfilter/winner_annual.csv; do
+          for f in results_mom_ivol_twostage/audit.csv results_mom_ivol_twostage/grid.csv results_mom_ivol_twostage/stability.csv results_mom_ivol_twostage/winner_cost.csv results_mom_ivol_twostage/winner_robust.csv results_mom_ivol_twostage/winner_annual.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simple-alpha-ivol-trendfilter-results
-          path: a-share-backtest/results_ivol_trendfilter/
+          name: simple-alpha-mom-ivol-twostage-results
+          path: a-share-backtest/results_mom_ivol_twostage/
           if-no-files-found: warn
           retention-days: 7
