@@ -23,7 +23,6 @@ def max_participation_shares(exec_volume: float, factor: float, participation: f
     rawvol=raw_share_volume(exec_volume,factor)
     if not np.isfinite(rawvol) or rawvol <= 0 or participation <= 0:
         return 0
-    # A-share ordinary order lot is 100 shares; floor participation capacity to a lot.
     return max(0, int((rawvol*float(participation))//100)*100)
 
 
@@ -64,7 +63,9 @@ def hard_simulate(panel,cal,members,cost_mult=1.0):
             rawvol=raw_share_volume(float(r.exec_volume),factor)
             maxraw=max_participation_shares(float(r.exec_volume),factor,sim.VOLUME_PARTICIPATION)
             shares=int(min(per,cash*.98)//(rawpx*100))*100
-            if maxraw>0: shares=min(shares,maxraw)
+            # Fail closed: if participation capacity is below one 100-share lot,
+            # maxraw is zero and the order must be rejected, never uncapped.
+            shares=min(shares,maxraw)
             if shares<=0: continue
             units=shares/factor; gross=units*adjpx; cost=sim.fee(gross,'buy',td,cost_mult); total=gross+cost
             if total>cash: continue
