@@ -18,7 +18,7 @@ jobs:
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
       - name: Run large price-risk factor search
         working-directory: a-share-backtest
-        run: python run_10y_mega_price_search.py
+        run: python run_10y_mega_price_search_stream.py
       - name: Show verdict
         if: always()
         working-directory: a-share-backtest
