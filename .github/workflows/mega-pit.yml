@@ -1,7 +1,6 @@
 name: Mega PIT Size Value Search
 on:
-  pull_request:
-    branches: [simple-alpha-base]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
