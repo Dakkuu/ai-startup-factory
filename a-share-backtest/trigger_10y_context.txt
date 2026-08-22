@@ -1,0 +1,1 @@
+Trigger 10-year A-share context analysis after workflow installation.

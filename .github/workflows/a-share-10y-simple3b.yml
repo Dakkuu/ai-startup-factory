@@ -1,0 +1,37 @@
+name: A-share simple single-factor search B
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pandas numpy scipy scikit-learn lightgbm
+      - name: Run simple single-factor search B
+        working-directory: a-share-backtest
+        run: python run_10y_simple3b.py
+      - name: Show results
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_simple3b/audit.csv results_simple3b/summary.csv results_simple3b/ic.csv results_simple3b/cost.csv results_simple3b/robust.csv results_simple3b/annual.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-simple-single-factor-search-b-results
+          path: a-share-backtest/results_simple3b/
+          if-no-files-found: warn
+          retention-days: 7

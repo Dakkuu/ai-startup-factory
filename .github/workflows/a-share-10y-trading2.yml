@@ -1,0 +1,33 @@
+name: A-share simple trading anomalies
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm
+      - name: Run simple trading anomalies
+        working-directory: a-share-backtest
+        run: python run_10y_trading2.py
+      - name: Show results
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_trading2/audit.csv results_trading2/summary.csv results_trading2/cost.csv results_trading2/robust.csv; do if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-simple-trading-anomalies-results
+          path: a-share-backtest/results_trading2/
+          if-no-files-found: warn
+          retention-days: 7

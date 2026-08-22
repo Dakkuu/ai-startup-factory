@@ -1,0 +1,37 @@
+name: A-share residual-momentum low-IVOL 2F v3
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pandas numpy scipy scikit-learn lightgbm
+      - name: Run frozen 2F v3 backtest
+        working-directory: a-share-backtest
+        run: python run_10y_alpha2f_v3.py
+      - name: Show core results
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_alpha2f_v3/market_coverage.csv results_alpha2f_v3/audit.csv results_alpha2f_v3/summary.csv results_alpha2f_v3/ic_summary.csv results_alpha2f_v3/quintiles.csv results_alpha2f_v3/double_cost.csv results_alpha2f_v3/robustness.csv results_alpha2f_v3/parameter_grid.csv results_alpha2f_v3/annual_returns.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a-share-10y-alpha2f-v3-results
+          path: a-share-backtest/results_alpha2f_v3/
+          if-no-files-found: warn
+          retention-days: 7

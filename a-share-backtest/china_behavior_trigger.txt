@@ -1,0 +1,1 @@
+Trigger China-behavior daily backtest after workflow registration.
