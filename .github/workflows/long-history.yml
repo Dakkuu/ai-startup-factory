@@ -1,0 +1,35 @@
+name: Longest Reliable A-share History
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+jobs:
+  long-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mega-opt-5x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
+      - name: Run longest reliable frozen rule backtest
+        working-directory: a-share-backtest
+        run: python run_long_history_frozen.py
+      - name: Show verdict
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_long_history/audit.csv results_long_history/annual.csv results_long_history/phase_offsets.csv results_long_history/costs.csv results_long_history/five_year_blocks.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: longest-reliable-history
+          path: a-share-backtest/results_long_history/
+          if-no-files-found: warn
+          retention-days: 14
