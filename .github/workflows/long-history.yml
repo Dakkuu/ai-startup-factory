@@ -1,11 +1,10 @@
-name: Mega 5x A-share Search
+name: Longest Reliable A-share History
 on:
-  pull_request:
-    branches: [simple-alpha-base]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  mega-price:
+  long-history:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -16,20 +15,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels
-      - name: Run large price-risk factor search
+      - name: Run longest reliable frozen rule backtest
         working-directory: a-share-backtest
-        run: python run_10y_mega_price_search_stream.py
+        run: python run_long_history_frozen.py
       - name: Show verdict
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_mega_price/audit.csv results_mega_price/exact_train_candidates.csv results_mega_price/winner_annual.csv results_mega_price/winner_costs.csv results_mega_price/winner_tail.csv results_mega_price/exploratory_fullsample_top20_fast.csv; do
+          for f in results_long_history/audit.csv results_long_history/annual.csv results_long_history/phase_offsets.csv results_long_history/costs.csv results_long_history/five_year_blocks.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: mega-price-search
-          path: a-share-backtest/results_mega_price/
+          name: longest-reliable-history
+          path: a-share-backtest/results_long_history/
           if-no-files-found: warn
           retention-days: 14
