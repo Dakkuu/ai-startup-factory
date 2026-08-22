@@ -7,10 +7,31 @@ exfix.install()
 
 import run_10y_alpha500_size_value as research
 
+# Compatibility-only schema patch. DoltHub may return information_schema field
+# labels with different casing; normalize labels, but do not alter source
+# viability thresholds, PIT rules, strategy definitions, or audit gates.
+def schema_frame_fixed():
+    rows=research.sql("SELECT table_name,column_name,data_type FROM information_schema.columns WHERE table_schema=DATABASE() ORDER BY table_name,ordinal_position")
+    z=pd.DataFrame(rows)
+    if z.empty:
+        raise RuntimeError('DoltHub information_schema query returned no rows')
+    mp={research.norm(c):c for c in z.columns}
+    need={'tablename':'table_name','columnname':'column_name','datatype':'data_type'}
+    ren={}
+    for canonical,out in need.items():
+        src=mp.get(canonical)
+        if src is None:
+            raise RuntimeError(f'DoltHub schema response missing {out}; columns={list(z.columns)} sample={z.head(3).to_dict(orient="records")}')
+        ren[src]=out
+    z=z.rename(columns=ren)[['table_name','column_name','data_type']]
+    z.to_csv(research.OUT/'dolthub_schema.csv',index=False)
+    return z
+
+research.schema_frame = schema_frame_fixed
+
 # Literature-guided extensions: earnings yield (E/P), turnover, and residual
 # momentum. These are fixed formulas; no continuous weight optimizer is used.
 _ORIG_RERANK = research.rerank
-_ORIG_FETCH = research.fetch_cross_section
 EXTRA_FAMILIES = (
     'ep', 'size_ep', 'size_ep_ivol', 'size_ep_eff', 'size_ep_bal',
     'exmicro30_ep', 'exmicro30_ep_ivol', 'exmicro30_ep_eff',
