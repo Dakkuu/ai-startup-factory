@@ -16,20 +16,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm
-      - name: Run skew filter extension suite
+      - name: Run grand anti-lottery optimization
         working-directory: a-share-backtest
-        run: python run_10y_skewfilter_extensions.py
+        run: python run_10y_grand_opt.py
       - name: Show results
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_skewfilter_extensions/audit.csv results_skewfilter_extensions/grid.csv results_skewfilter_extensions/stability.csv results_skewfilter_extensions/anchor_annual.csv results_skewfilter_extensions/anchor_cost.csv results_skewfilter_extensions/anchor_robust.csv; do
+          for f in results_grand_opt/audit.csv results_grand_opt/phase1_signal_pool.csv results_grand_opt/phase2_construction.csv results_grand_opt/winner_summary.csv results_grand_opt/winner_plateau.csv results_grand_opt/winner_blocks.csv results_grand_opt/winner_annual.csv results_grand_opt/winner_cost.csv results_grand_opt/winner_robust.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: simple-alpha-skewfilter-extension-results
-          path: a-share-backtest/results_skewfilter_extensions/
+          name: grand-anti-lottery-optimization-results
+          path: a-share-backtest/results_grand_opt/
           if-no-files-found: warn
           retention-days: 7
