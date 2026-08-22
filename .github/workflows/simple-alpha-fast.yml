@@ -44,20 +44,20 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels baostock beautifulsoup4 lxml requests
-      - name: Run external PIT ST and factor audit
+      - name: Run hardened external PIT ST, price and factor audit
         working-directory: a-share-backtest
-        run: python run_10y_external_audit.py
+        run: python run_10y_external_audit_v2.py
       - name: Show external verdict
         if: always()
         working-directory: a-share-backtest
         run: |
-          for f in results_external_audit/external_verdict.csv results_external_audit/external_gates.csv results_external_audit/pit_st_summary.csv results_external_audit/cross_source_summary.csv results_external_audit/external_factor_regression.csv results_external_audit/baostock_universe_coverage.csv; do
+          for f in results_external_audit_v2/external_verdict.csv results_external_audit_v2/external_gates.csv results_external_audit_v2/pit_st_summary.csv results_external_audit_v2/pit_st_annual.csv results_external_audit_v2/cross_source_summary.csv results_external_audit_v2/external_factor_regression.csv results_external_audit_v2/baostock_universe_coverage.csv results_external_audit_v2/final_buys_pit_status.csv; do
             if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
           done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: maximum-strict-external-audit
-          path: a-share-backtest/results_external_audit/
+          name: maximum-strict-external-audit-v2
+          path: a-share-backtest/results_external_audit_v2/
           if-no-files-found: warn
           retention-days: 14
