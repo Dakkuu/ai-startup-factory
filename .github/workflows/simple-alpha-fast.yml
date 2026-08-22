@@ -67,6 +67,11 @@ jobs:
   alpha-discovery-qv:
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,5 +95,104 @@ jobs:
         with:
           name: alpha-discovery-qv-results
           path: a-share-backtest/results_alpha_discovery_qv/
+          if-no-files-found: warn
+          retention-days: 14
+  alpha-composites-qv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: alpha-500-research
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run pre-registered composite Alpha families
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_composites_qv.py
+      - name: Show composite evidence
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_alpha_composites_qv/composite_manifest.csv results_alpha_composites_qv/composite_screen.csv results_alpha_composites_qv/construction_grid.csv results_alpha_composites_qv/winner.csv results_alpha_composites_qv/winner_costs.csv results_alpha_composites_qv/winner_annual.csv results_alpha_composites_qv/winner_robust.csv results_alpha_composites_qv/audit.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpha-composites-qv-results
+          path: a-share-backtest/results_alpha_composites_qv/
+          if-no-files-found: warn
+          retention-days: 14
+  alpha-adaptive-qv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: alpha-500-research
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run causal trailing-IC adaptive factor rotation
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_adaptive_qv.py
+      - name: Show adaptive evidence
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_alpha_adaptive_qv/adaptive_grid.csv results_alpha_adaptive_qv/winner.csv results_alpha_adaptive_qv/winner_costs.csv results_alpha_adaptive_qv/winner_annual.csv results_alpha_adaptive_qv/winner_robust.csv results_alpha_adaptive_qv/audit.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpha-adaptive-qv-results
+          path: a-share-backtest/results_alpha_adaptive_qv/
+          if-no-files-found: warn
+          retention-days: 14
+  alpha-ml-walkforward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: alpha-500-research
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run strict rolling walk-forward Ridge and LightGBM
+        working-directory: a-share-backtest
+        run: python run_10y_alpha_ml_walkforward.py
+      - name: Show ML evidence
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          for f in results_alpha_ml_walkforward/feature_manifest.csv results_alpha_ml_walkforward/model_grid.csv results_alpha_ml_walkforward/winner.csv results_alpha_ml_walkforward/winner_costs.csv results_alpha_ml_walkforward/winner_annual.csv results_alpha_ml_walkforward/winner_robust.csv results_alpha_ml_walkforward/audit.csv; do
+            if [ -f "$f" ]; then echo "===== $f ====="; cat "$f"; fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: alpha-ml-walkforward-results
+          path: a-share-backtest/results_alpha_ml_walkforward/
           if-no-files-found: warn
           retention-days: 14
