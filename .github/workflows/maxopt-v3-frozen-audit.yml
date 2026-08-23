@@ -1,0 +1,26 @@
+name: MaxOpt V3 Frozen Audit
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+concurrency:
+  group: maxopt-v3-frozen-audit
+  cancel-in-progress: true
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Frozen finalist stress audit
+        working-directory: a-share-backtest
+        run: python run_10y_maxopt_v3_frozen_audit_fixed.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v3-frozen-audit, path: a-share-backtest/results_maxopt_v3_frozen_audit/, if-no-files-found: warn, retention-days: 14}

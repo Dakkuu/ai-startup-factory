@@ -1,0 +1,30 @@
+name: LowPrice External V2
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+concurrency:
+  group: lowprice-external-v2-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests baostock
+      - name: External raw-price and ST audit
+        working-directory: a-share-backtest
+        run: python run_10y_lowprice_external_audit_v2.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lowprice-external-v2
+          path: a-share-backtest/results_lowprice_external_v2/
+          if-no-files-found: warn
+          retention-days: 14

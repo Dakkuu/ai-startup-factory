@@ -1,0 +1,30 @@
+name: Phase Sleeve Structural Audit
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+concurrency:
+  group: phase-sleeve-audit
+  cancel-in-progress: true
+jobs:
+  phase-sleeve-ensemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run equal-weight 8-phase sleeve structural audit
+        working-directory: a-share-backtest
+        run: python run_10y_phase_sleeve_ensemble.py
+      - name: Show ensemble verdict
+        if: always()
+        working-directory: a-share-backtest
+        run: for f in results_phase_sleeve_ensemble/verdict.csv results_phase_sleeve_ensemble/gates.csv results_phase_sleeve_ensemble/ensemble.csv results_phase_sleeve_ensemble/costs.csv results_phase_sleeve_ensemble/robust.csv; do [ ! -f "$f" ] || { echo "===== $f ====="; cat "$f"; }; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: phase-sleeve-ensemble-results, path: a-share-backtest/results_phase_sleeve_ensemble/, if-no-files-found: warn, retention-days: 14}

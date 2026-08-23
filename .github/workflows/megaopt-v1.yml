@@ -1,0 +1,58 @@
+name: MegaOpt V1
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+concurrency:
+  group: megaopt-v1
+  cancel-in-progress: true
+jobs:
+  risktrend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Risk-trend mega search
+        working-directory: a-share-backtest
+        run: python run_10y_megaopt_v1.py risktrend
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: megaopt-v1-risktrend, path: a-share-backtest/results_megaopt_v1_risktrend/, if-no-files-found: warn, retention-days: 14}
+  twostage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Two-stage gated mega search
+        working-directory: a-share-backtest
+        run: python run_10y_megaopt_v1.py twostage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: megaopt-v1-twostage, path: a-share-backtest/results_megaopt_v1_twostage/, if-no-files-found: warn, retention-days: 14}
+  nonlinear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Nonlinear interaction mega search
+        working-directory: a-share-backtest
+        run: python run_10y_megaopt_v1.py nonlinear
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: megaopt-v1-nonlinear, path: a-share-backtest/results_megaopt_v1_nonlinear/, if-no-files-found: warn, retention-days: 14}

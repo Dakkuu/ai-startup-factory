@@ -1,0 +1,58 @@
+name: Baseline MaxOpt V3
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+concurrency:
+  group: baseline-maxopt-v3
+  cancel-in-progress: true
+jobs:
+  linear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Memory-safe linear signal optimization
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_signals_v4.py linear
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v4-linear, path: a-share-backtest/results_baseline_maxopt_linear_v4/, if-no-files-found: warn, retention-days: 14}
+  augmented:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Memory-safe augmented factor optimization
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_signals_v4.py augmented
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v4-augmented, path: a-share-backtest/results_baseline_maxopt_augmented_v4/, if-no-files-found: warn, retention-days: 14}
+  nonlinear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Memory-safe nonlinear interaction optimization
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_signals_v4.py nonlinear
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v4-nonlinear, path: a-share-backtest/results_baseline_maxopt_nonlinear_v4/, if-no-files-found: warn, retention-days: 14}

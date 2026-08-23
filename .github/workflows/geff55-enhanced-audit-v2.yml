@@ -1,0 +1,66 @@
+name: GEff55 Enhanced Audit V2
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+concurrency:
+  group: geff55-enhanced-v2-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+jobs:
+  strict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Frozen strict causal and execution audit
+        working-directory: a-share-backtest
+        run: python run_10y_geff55_strict_audit_v2.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: geff55-strict-v2, path: a-share-backtest/results_geff55_strict_v2/, if-no-files-found: warn, retention-days: 14}
+  statistics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Multiple-testing and bootstrap audit
+        working-directory: a-share-backtest
+        run: python run_10y_geff55_statistics_v2.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: geff55-statistics-v2, path: a-share-backtest/results_geff55_statistics_v2/, if-no-files-found: warn, retention-days: 14}
+  repair-search:
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [a,b,c]
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Train-only all-phase robust repair search
+        working-directory: a-share-backtest
+        run: python run_10y_geff_phase_robust_search_v2.py ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: geff-repair-search-${{ matrix.shard }}
+          path: a-share-backtest/results_geff_phase_robust_v2_${{ matrix.shard }}/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,26 @@
+name: LowPrice SignalPure V1
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+concurrency:
+  group: lowprice-signalpure-v1
+  cancel-in-progress: true
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Signal-pure low-price interactions
+        working-directory: a-share-backtest
+        run: python run_10y_lowprice_signalpure_v1.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: lowprice-signalpure-v1, path: a-share-backtest/results_lowprice_signalpure_v1/, if-no-files-found: warn, retention-days: 14}
