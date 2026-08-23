@@ -1,0 +1,68 @@
+name: N4 Audit and Plateau V5
+on:
+  pull_request:
+    branches: [alpha-structural-base]
+permissions:
+  contents: read
+jobs:
+  audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [core, capacity, delay, noise, delete, placebo]
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests baostock
+      - name: Frozen N4 enhanced audit
+        working-directory: a-share-backtest
+        run: python run_10y_lowprice_n4_frozen_audit_v5.py ${{ matrix.mode }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: n4-frozen-v5-${{ matrix.mode }}
+          path: a-share-backtest/results_lowprice_n4_frozen_v5_${{ matrix.mode }}/
+          if-no-files-found: warn
+          retention-days: 14
+  plateau:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Frozen train-plateau ensemble
+        working-directory: a-share-backtest
+        run: python run_10y_lowprice_plateau_ensemble_v5.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lowprice-plateau-ensemble-v5
+          path: a-share-backtest/results_lowprice_plateau_ensemble_v5/
+          if-no-files-found: warn
+          retention-days: 14
+  external_st:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests baostock
+      - name: BaoStock external price and ST audit
+        working-directory: a-share-backtest
+        run: python run_10y_lowprice_n4_external_st_v5.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: n4-external-st-v5
+          path: a-share-backtest/results_lowprice_n4_external_st_v5/
+          if-no-files-found: warn
+          retention-days: 14
