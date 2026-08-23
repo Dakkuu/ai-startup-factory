@@ -5,8 +5,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: baseline-maxopt-v3-${{ github.sha }}
-  cancel-in-progress: false
+  group: baseline-maxopt-v3
+  cancel-in-progress: true
 jobs:
   linear:
     runs-on: ubuntu-latest
