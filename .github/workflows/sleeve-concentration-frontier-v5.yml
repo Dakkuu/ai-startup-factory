@@ -1,0 +1,26 @@
+name: Sleeve Concentration Frontier V5
+on:
+  pull_request:
+    branches: [alpha-structural-base]
+permissions:
+  contents: read
+jobs:
+  frontier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Train-only sleeve concentration frontier then frozen validation
+        working-directory: a-share-backtest
+        run: python run_10y_sleeve_concentration_frontier_v5.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sleeve-concentration-frontier-v5
+          path: a-share-backtest/results_sleeve_concentration_frontier_v5/
+          if-no-files-found: warn
+          retention-days: 14
