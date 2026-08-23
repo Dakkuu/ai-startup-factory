@@ -5,8 +5,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: v4-candidate-audit-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: false
+  group: v4-candidate-audit
+  cancel-in-progress: true
 jobs:
   audit:
     strategy:
