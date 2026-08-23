@@ -1,0 +1,33 @@
+name: Concentration Frozen V4 Audit
+on:
+  pull_request:
+    branches: [alpha-concentration-v4-isolated]
+permissions:
+  contents: read
+concurrency:
+  group: concentration-frozen-v4-audit
+  cancel-in-progress: true
+jobs:
+  audit:
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [core, capacity, delay, noise, delete, placebo]
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Frozen concentration V4 stress audit
+        working-directory: a-share-backtest
+        run: python run_10y_lowprice_concentration_frozen_v4.py ${{ matrix.mode }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: concentration-frozen-v4-${{ matrix.mode }}
+          path: a-share-backtest/results_lowprice_concentration_frozen_v4_${{ matrix.mode }}/
+          if-no-files-found: warn
+          retention-days: 14
