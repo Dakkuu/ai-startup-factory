@@ -5,8 +5,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: maxopt-v3-frozen-audit-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: false
+  group: maxopt-v3-frozen-audit
+  cancel-in-progress: true
 jobs:
   audit:
     runs-on: ubuntu-latest
