@@ -5,8 +5,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: megaopt-v1-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: false
+  group: megaopt-v1
+  cancel-in-progress: true
 jobs:
   risktrend:
     runs-on: ubuntu-latest
