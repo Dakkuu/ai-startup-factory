@@ -1,0 +1,6 @@
+FROZEN BEFORE FULL VALIDATION
+weights: price=.35, iv=.18, ef=.15, rmom=.20, tstat=.12
+liq=.55, raw_price_floor=2.0, hold=60, n=8, entry=.10, keep=.30
+selection: 2016-07-29 through 2021-12-31 only; all 12 phases exact total-cash split
+Do not alter based on 2022-2026 validation results.
+Audit trigger sync only; no parameter change.
