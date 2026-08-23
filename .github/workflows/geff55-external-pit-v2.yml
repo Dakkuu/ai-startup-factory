@@ -1,0 +1,23 @@
+name: GEff55 External PIT V2
+on:
+  push:
+    branches: [geff55-external-audit-v2]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: geff55-external-audit-v2}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests beautifulsoup4 lxml baostock
+      - name: External PIT ST status price and factor audit
+        working-directory: a-share-backtest
+        run: python run_10y_geff55_external_pit_v2.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: geff55-external-pit-v2, path: a-share-backtest/results_geff55_external_pit_v2/, if-no-files-found: warn, retention-days: 14}
