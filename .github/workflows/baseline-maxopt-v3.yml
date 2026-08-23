@@ -1,0 +1,103 @@
+name: Baseline MaxOpt V3
+on:
+  pull_request:
+    branches: [simple-alpha-base]
+permissions:
+  contents: read
+concurrency:
+  group: baseline-maxopt-v3
+  cancel-in-progress: true
+jobs:
+  linear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Linear signal/universe optimization
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_v3.py linear
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v3-linear, path: a-share-backtest/results_baseline_maxopt_linear/, if-no-files-found: warn, retention-days: 14}
+  augmented:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Augmented factor optimization
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_v3.py augmented
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v3-augmented, path: a-share-backtest/results_baseline_maxopt_augmented/, if-no-files-found: warn, retention-days: 14}
+  nonlinear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Nonlinear interaction optimization
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_v3.py nonlinear
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v3-nonlinear, path: a-share-backtest/results_baseline_maxopt_nonlinear/, if-no-files-found: warn, retention-days: 14}
+  surface-short:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Short-horizon construction surface
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_v3.py surface_short
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v3-surface-short, path: a-share-backtest/results_baseline_maxopt_surface_short/, if-no-files-found: warn, retention-days: 14}
+  surface-mid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Mid-horizon construction surface
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_v3.py surface_mid
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v3-surface-mid, path: a-share-backtest/results_baseline_maxopt_surface_mid/, if-no-files-found: warn, retention-days: 14}
+  surface-long:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: alpha-500-research}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Long-horizon construction surface
+        working-directory: a-share-backtest
+        run: python run_10y_baseline_maxopt_v3.py surface_long
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: maxopt-v3-surface-long, path: a-share-backtest/results_baseline_maxopt_surface_long/, if-no-files-found: warn, retention-days: 14}
