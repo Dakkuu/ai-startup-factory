@@ -5,8 +5,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: maxopt-v3-frozen-audit
-  cancel-in-progress: true
+  group: maxopt-v3-frozen-audit-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -20,7 +20,7 @@ jobs:
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
       - name: Frozen finalist stress audit
         working-directory: a-share-backtest
-        run: python run_10y_maxopt_v3_frozen_audit_compat.py
+        run: python run_10y_maxopt_v3_frozen_audit_fixed.py
       - uses: actions/upload-artifact@v4
         if: always()
         with: {name: maxopt-v3-frozen-audit, path: a-share-backtest/results_maxopt_v3_frozen_audit/, if-no-files-found: warn, retention-days: 14}
