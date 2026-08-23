@@ -1,11 +1,11 @@
 name: LP Heavy Frozen Isolated
 on:
-  push:
-    branches: [lp-heavy-frozen-audit-20260823]
+  pull_request:
+    branches: [lp-audit-base-20260823]
 permissions:
   contents: read
 concurrency:
-  group: lp-heavy-frozen-isolated-${{ github.sha }}
+  group: lp-heavy-frozen-isolated-${{ github.event.pull_request.head.sha }}
   cancel-in-progress: false
 jobs:
   validate:
@@ -18,7 +18,7 @@ jobs:
     env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
     steps:
       - uses: actions/checkout@v4
-        with: {ref: ${{ github.sha }}}
+        with: {ref: ${{ github.event.pull_request.head.sha }}}
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
