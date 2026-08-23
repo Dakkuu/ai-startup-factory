@@ -5,8 +5,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: long-refine-v1-${{ github.event.pull_request.head.sha }}
-  cancel-in-progress: false
+  group: long-refine-v1
+  cancel-in-progress: true
 jobs:
   refine:
     runs-on: ubuntu-latest
