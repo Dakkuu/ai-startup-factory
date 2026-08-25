@@ -1,0 +1,48 @@
+name: A-share 20y Qlib probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/a-share-20y-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QLIB_RELEASE_TAG: '2026-07-29'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout research branch
+        uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install numpy pandas
+      - name: Run archive audit probe
+        working-directory: a-share-backtest
+        run: python probe_20y_qlib_archive.py
+      - name: Show audit
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          cat results_20y_probe/summary.json || true
+          cat results_20y_probe/date_coverage.csv || true
+          head -40 results_20y_probe/field_frequency.csv || true
+          cat results_20y_probe/instrument_files.csv || true
+      - name: Upload probe results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a-share-20y-qlib-probe
+          path: a-share-backtest/results_20y_probe/
+          if-no-files-found: warn
+          retention-days: 7
