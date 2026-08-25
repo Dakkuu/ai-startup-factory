@@ -1,0 +1,2 @@
+trigger=2026-08-25T20:58:00+08:00
+purpose=frozen-rule 2006-2026 reconstruction; no use of pre-2016 performance for parameter selection
