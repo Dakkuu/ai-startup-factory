@@ -1,0 +1,44 @@
+name: A-share GEff reconstruction calibration
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/a-share-geff-calibration.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  QLIB_RELEASE_TAG: '2026-07-29'
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy pandas
+      - name: Run implementation calibration
+        working-directory: a-share-backtest
+        run: python calibrate_geff_reconstruction.py
+      - name: Show calibration
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          cat results_geff_calibration/best.json || true
+          head -31 results_geff_calibration/calibration_grid.csv || true
+          cat results_geff_calibration/best_detail.csv || true
+      - name: Upload calibration
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a-share-geff-calibration
+          path: a-share-backtest/results_geff_calibration/
+          if-no-files-found: warn
+          retention-days: 7
