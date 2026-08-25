@@ -1,0 +1,12 @@
+{
+  "universe": "noprice",
+  "eff": "res60",
+  "momentum": "mom",
+  "rank_scope": "universe",
+  "mean_jaccard": 0.18285029997673674,
+  "mean_recall": 0.2925925925925926,
+  "mean_precision": 0.291358024691358,
+  "exact_sets": 0,
+  "basegood_med": 3784.0,
+  "gate_med": 2081.0
+}

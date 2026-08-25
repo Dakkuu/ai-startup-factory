@@ -1,0 +1,1 @@
+Trigger era-aware ten-year A-share backtest after workflow installation.

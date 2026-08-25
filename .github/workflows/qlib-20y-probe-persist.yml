@@ -1,0 +1,38 @@
+name: Persistent 20Y Qlib Probe
+
+on:
+  push:
+    branches: [a-share-backtest]
+    paths:
+      - 'a-share-backtest/qlib_20y_probe_trigger.txt'
+      - '.github/workflows/qlib-20y-probe-persist.yml'
+
+permissions:
+  contents: write
+
+env:
+  QLIB_RELEASE_TAG: '2026-07-29'
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: a-share-backtest
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy pandas
+      - name: Run 20y data probe
+        working-directory: a-share-backtest
+        run: python probe_20y_qlib_archive.py
+      - name: Persist results
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add a-share-backtest/results_20y_probe
+          git commit -m 'results: persist 20y qlib probe' || exit 0
+          git push origin HEAD:a-share-backtest

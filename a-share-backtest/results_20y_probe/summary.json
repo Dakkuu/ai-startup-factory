@@ -1,0 +1,21 @@
+{
+  "tag": "2026-07-29",
+  "calendar_start": "2000-01-04",
+  "calendar_end": "2026-07-29",
+  "calendar_n": 6438,
+  "feature_dirs": 6125,
+  "ashare_prefix_dirs": 6120,
+  "field_frequency": {
+    "volume": 6120,
+    "adjclose": 6120,
+    "amount": 6120,
+    "open": 6120,
+    "low": 6120,
+    "high": 6120,
+    "vwap": 6120,
+    "factor": 6120,
+    "change": 6120,
+    "close": 6120
+  },
+  "history_count": 6120
+}

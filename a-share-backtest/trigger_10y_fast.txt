@@ -1,0 +1,1 @@
+Trigger vectorized era-aware ten-year backtest.
