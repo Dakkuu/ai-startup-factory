@@ -1,0 +1,53 @@
+name: A-share Qlib split export
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/a-share-qlib-split-export.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Download and split canonical archive
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 -o qlib_bin.tar.gz https://github.com/chenditc/investment_data/releases/download/2026-07-29/qlib_bin.tar.gz
+          sha256sum qlib_bin.tar.gz | tee SHA256SUM.txt
+          split -b 190000000 -d -a 2 qlib_bin.tar.gz qlib.part.
+          ls -lh qlib.part.*
+          sha256sum qlib.part.* | tee PART_SHA256SUMS.txt
+      - name: Upload part 00
+        uses: actions/upload-artifact@v4
+        with:
+          name: qlib-part-00
+          path: qlib.part.00
+          compression-level: 0
+          retention-days: 1
+      - name: Upload part 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: qlib-part-01
+          path: qlib.part.01
+          compression-level: 0
+          retention-days: 1
+      - name: Upload part 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: qlib-part-02
+          path: qlib.part.02
+          compression-level: 0
+          retention-days: 1
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: qlib-checksums
+          path: |
+            SHA256SUM.txt
+            PART_SHA256SUMS.txt
+          retention-days: 1
