@@ -1,0 +1,38 @@
+{
+  "tag": "2026-07-29",
+  "calendar_start": "2000-01-04",
+  "calendar_end": "2026-07-29",
+  "symbols": 6120,
+  "anchor_present": true,
+  "report_sessions": 4996,
+  "recon_spec": {
+    "universe": "pit_all_txt_no_price_floor",
+    "history_min_sessions": 126,
+    "efficiency": "abs(sum(residual60))/sum(abs(residual60)) vs CSI300; gate <=55pct",
+    "momentum": "raw adjusted 6-1 log return t-21/t-126",
+    "rank_scope": "pre_gate eligible universe",
+    "weights": {
+      "low_downside": 0.15,
+      "low_resvol": 0.25,
+      "momentum": 0.35,
+      "trend_t": 0.25
+    },
+    "rebalance_sessions": 90,
+    "anchor_signal_date": "2016-07-29",
+    "max_names": 10,
+    "entry_top": 0.1,
+    "retain_top": 0.3,
+    "fixed_denominator": 10,
+    "base_effective_lag_sessions": 2,
+    "oneway_cost_proxy": 0.00155,
+    "risk_overlay": "exact recovered V12-RC return-stream engine"
+  },
+  "limitations": [
+    "no historical dynamic ST table",
+    "no exact historical stk_limit table",
+    "suspension inferred only through missing price returns",
+    "no exact corporate-action share/lot ledger",
+    "Qlib adjusted close return proxy rather than exact broker fills"
+  ],
+  "classification": "Tier-B reconstructed diagnostic, not exact V12 extension and not clean OOS"
+}
