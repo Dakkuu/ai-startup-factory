@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 338, in <module>
+    try: main()
+         ^^^^^^
+  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 310, in main
+    raw=make_raw(con)
+        ^^^^^^^^^^^^^
+  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 170, in make_raw
+    con.execute(sql)
+_duckdb.ParserException: Parser Error: syntax error at or near "close"
+
+LINE 5: ...) high, CAST(k.low AS DOUBLE) low, CAST(k.close AS DOUBLE) close,
+                                                                      ^
