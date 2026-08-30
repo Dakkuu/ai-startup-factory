@@ -7,7 +7,7 @@ Traceback (most recent call last):
         ^^^^^^^^^^^^^
   File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 174, in make_raw
     con.execute(sqlfix(sql))
-_duckdb.ParserException: Parser Error: syntax error at or near "name"
+_duckdb.BinderException: Binder Error: window function calls cannot be nested
 
-LINE 9:              COALESCE(CAST(m.name AS VARCHAR),'') name,
-                                                          ^
+LINE 40:         avg(r1) OVER(PARTITION BY date) mkt1, avg(r5) OVER(PARTITION...
+                 ^
