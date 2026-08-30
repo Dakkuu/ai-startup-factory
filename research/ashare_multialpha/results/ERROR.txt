@@ -1,13 +1,11 @@
 Traceback (most recent call last):
-  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 342, in <module>
+  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 345, in <module>
     try: main()
          ^^^^^^
-  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 314, in main
-    raw=make_raw(con)
-        ^^^^^^^^^^^^^
-  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 174, in make_raw
-    con.execute(sqlfix(sql))
-_duckdb.BinderException: Binder Error: window function calls cannot be nested
-
-LINE 40:         avg(r1) OVER(PARTITION BY date) mkt1, avg(r5) OVER(PARTITION...
-                 ^
+  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 337, in main
+    meta,W=meta_port(daily,passed); meta.to_csv(OUT/'meta_daily.csv',index=False); W.to_csv(OUT/'meta_weights.csv'); meta_m={'all':metrics(meta),'test':metrics(meta,test)}
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/ai-startup-factory/ai-startup-factory/research/ashare_multialpha/run.py", line 307, in meta_port
+    excess=(w[over]-cap).sum(); w[over]=cap; under=~over
+                                ~^^^^^^
+ValueError: assignment destination is read-only
