@@ -1,0 +1,63 @@
+name: A-share MultiAlpha isolated backtest
+
+on:
+  push:
+    branches: [ashare-multialpha-run-20260830]
+
+permissions:
+  contents: write
+
+jobs:
+  backtest:
+    if: ${{ !contains(github.event.head_commit.message, '[backtest-result]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ashare-multialpha-run-20260830
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install research dependencies
+        run: python -m pip install --upgrade pip && pip install duckdb pyarrow pandas numpy scikit-learn
+      - name: Decode frozen runner
+        run: |
+          python - <<'PY'
+          import base64,gzip,pathlib
+          p=pathlib.Path('research/ashare_multialpha/run.py.gz.b64')
+          pathlib.Path('research/ashare_multialpha/run.py').write_bytes(gzip.decompress(base64.b64decode(p.read_text())))
+          PY
+          python -m py_compile research/ashare_multialpha/run.py
+      - name: Run full stock-level backtest
+        id: run
+        shell: bash
+        run: |
+          set +e
+          mkdir -p research/ashare_multialpha/results
+          python research/ashare_multialpha/run.py > research/ashare_multialpha/results/workflow.log 2>&1
+          code=$?
+          echo "$code" > research/ashare_multialpha/results/EXIT_CODE.txt
+          tail -n 500 research/ashare_multialpha/results/workflow.log > research/ashare_multialpha/results/WORKFLOW_TAIL.txt
+          exit 0
+      - name: Commit compact results back to isolated branch
+        shell: bash
+        run: |
+          git config user.name 'chatgpt-backtest-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -f research/ashare_multialpha/results/STATUS.json 2>/dev/null || true
+          git add -f research/ashare_multialpha/results/strategy_summary.csv 2>/dev/null || true
+          git add -f research/ashare_multialpha/results/factor_ic_validation.csv 2>/dev/null || true
+          git add -f research/ashare_multialpha/results/factor_ic_test.csv 2>/dev/null || true
+          git add -f research/ashare_multialpha/results/meta_daily.csv 2>/dev/null || true
+          git add -f research/ashare_multialpha/results/meta_weights.csv 2>/dev/null || true
+          git add -f research/ashare_multialpha/results/ERROR.txt 2>/dev/null || true
+          git add -f research/ashare_multialpha/results/EXIT_CODE.txt research/ashare_multialpha/results/WORKFLOW_TAIL.txt
+          if ! git diff --cached --quiet; then
+            git commit -m '[backtest-result] A-share MultiAlpha run output'
+            git push origin HEAD:ashare-multialpha-run-20260830
+          fi
+      - name: Propagate run status
+        shell: bash
+        run: test "$(cat research/ashare_multialpha/results/EXIT_CODE.txt)" = "0"
