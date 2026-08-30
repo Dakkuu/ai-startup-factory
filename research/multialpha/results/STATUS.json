@@ -1,0 +1,27 @@
+{
+  "data_source": "newbiestring-lang/astock",
+  "rows": 6006046,
+  "stocks": 5322,
+  "sessions": 1426,
+  "start": "2020-06-01",
+  "end": "2026-04-17",
+  "alpha_factors": 56,
+  "strategies_tested": 13,
+  "passed": [],
+  "n_passed": 0,
+  "requirement_at_least_10": false,
+  "split": {
+    "dev_end": "2023-05-09",
+    "validation_start": "2023-05-10",
+    "validation_end": "2024-10-28",
+    "test_start": "2024-10-29"
+  },
+  "meta": {},
+  "limitations": [
+    "forward-adjusted BaoStock prices",
+    "no PIT sector labels",
+    "no dynamic ST flag/exact 5% ST limit",
+    "no exact daily limit-price table; strategy S10 event gate approximated from prior close and board/date rule",
+    "source notes early history incomplete for about 685 old stocks"
+  ]
+}

@@ -1,0 +1,50 @@
+LOAD kline_000.parquet 203755
+LOAD kline_002.parquet 1154188
+LOAD kline_300.parquet 1686097
+LOAD kline_600.parquet 2308467
+LOAD kline_688.parquet 653539
+DATA 6006046 5322 2020-06-01 00:00:00 2026-04-17 00:00:00
+/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/numpy/lib/_nanfunctions_impl.py:1217: RuntimeWarning: All-NaN slice encountered
+  return fnb._ureduce(a, func=_nanmedian, keepdims=keepdims,
+FACTORS (6006046, 56) 0.9823974785455475
+RULE SCORES DONE
+/home/runner/work/ai-startup-factory/ai-startup-factory/research/multialpha/code/remote_fast56.py:88: RuntimeWarning: Mean of empty slice
+  w=np.nanmean(ic[max(0,e-lookback+1):e+1],axis=0);w=np.nan_to_num(w);s=np.abs(w).sum()
+S13 DONE
+DONE S01 False {'cagr': -0.32749259857363233, 'mdd': -0.6067655803118882, 'sharpe': -0.8478021000806552, 'ending_nav': 0.5580467333242635, 'avg_gross': 0.9982324172271771, 'max_single': 0.03646646812558174} {'cagr': 3.7042525179970687, 'mdd': -0.2702289571238118, 'sharpe': 0.8327715236686867, 'ending_nav': 9.661643007240361, 'avg_gross': 0.9961367349664704, 'max_single': 0.9160771369934082}
+DONE S02 False {'cagr': -0.5614275291661818, 'mdd': -0.7559015640750798, 'sharpe': -1.9244277130136958, 'ending_nav': 0.29765223673130514, 'avg_gross': 0.9986608905738659, 'max_single': 0.035908620804548264} {'cagr': -0.3857018860424677, 'mdd': -0.5619539074330107, 'sharpe': -1.4844068367774421, 'ending_nav': 0.4898036368336808, 'avg_gross': 0.9986814529288048, 'max_single': 0.03677138686180115}
+DONE S03 False {'cagr': -0.4739852401842488, 'mdd': -0.7227070101963525, 'sharpe': -1.6919920229489462, 'ending_nav': 0.38886200920574815, 'avg_gross': 0.991066767593448, 'max_single': 0.059295810759067535} {'cagr': 0.4724680918963242, 'mdd': -0.4204537849025055, 'sharpe': 0.8929340824196077, 'ending_nav': 1.762585951040555, 'avg_gross': 0.991277982707785, 'max_single': 0.39953064918518066}
+DONE S04 False {'cagr': -0.761810398206002, 'mdd': -0.9046371554703562, 'sharpe': -3.5317873425144257, 'ending_nav': 0.12131568834114605, 'avg_gross': 0.9959243808904391, 'max_single': 0.04812324792146683} {'cagr': -0.6014438773448667, 'mdd': -0.7556469444114763, 'sharpe': -2.4149902945137427, 'ending_nav': 0.2598991677118622, 'avg_gross': 0.9958490764393526, 'max_single': 0.05001487955451012}
+DONE S05 False {'cagr': -0.3304991661728053, 'mdd': -0.6336174390250082, 'sharpe': -0.9495299024057005, 'ending_nav': 0.5543825235474451, 'avg_gross': 0.9979719355534972, 'max_single': 0.036928046494722366} {'cagr': 0.08502775178958522, 'mdd': -0.30841782428857556, 'sharpe': 0.4114324421828998, 'ending_nav': 1.1269718070859238, 'avg_gross': 0.9978619366466832, 'max_single': 0.037991829216480255}
+DONE S06 False {'cagr': -0.12415039007062367, 'mdd': -0.37675350957200393, 'sharpe': -0.4506422036708562, 'ending_nav': 0.8229182302959941, 'avg_gross': 0.9984610884377126, 'max_single': 0.043649978935718536} {'cagr': 1.4512255964389005, 'mdd': -0.2674432870052268, 'sharpe': 0.8101894319509824, 'ending_nav': 3.7184414037547886, 'avg_gross': 0.9949295407249814, 'max_single': 0.5484285950660706}
+DONE S07 False {'cagr': -0.17247465808296614, 'mdd': -0.39021349294724084, 'sharpe': -0.7142563758201687, 'ending_nav': 0.7570376193080095, 'avg_gross': 0.9951394083124868, 'max_single': 0.06031123548746109} {'cagr': 0.16058459099520883, 'mdd': -0.36395924558424275, 'sharpe': 0.6130469472054536, 'ending_nav': 1.2437620444638218, 'avg_gross': 0.99363739199999, 'max_single': 0.05827051401138306}
+DONE S08 False {'cagr': -0.4507115825130581, 'mdd': -0.7616636294427971, 'sharpe': -1.3371158161600996, 'ending_nav': 0.41441934641602957, 'avg_gross': 0.9976067047440604, 'max_single': 0.049210429191589355} {'cagr': 4.0876138779231255, 'mdd': -0.407581692814004, 'sharpe': 0.8245256472901599, 'ending_nav': 10.836473232934727, 'avg_gross': 0.9932009794798886, 'max_single': 0.9375259280204773}
+DONE S09 False {'cagr': -0.3395946016870487, 'mdd': -0.6659435602628587, 'sharpe': -0.7931270220001935, 'ending_nav': 0.5433447357615797, 'avg_gross': 0.9987093521637863, 'max_single': 0.039555635303258896} {'cagr': 7.70261523006779, 'mdd': -0.34046901399804474, 'sharpe': 0.8361710748423262, 'ending_nav': 23.789233112834907, 'avg_gross': 0.9960720167607486, 'max_single': 0.9670329689979553}
+DONE S10 False {'cagr': -0.9541370082990296, 'mdd': -0.9897953193897957, 'sharpe': -6.300390529881406, 'ending_nav': 0.010764824411237398, 'avg_gross': 0.9999998948547277, 'max_single': 0.045454543083906174} {'cagr': -0.8543699947214529, 'mdd': -0.9427118143455607, 'sharpe': -4.410300097757842, 'ending_nav': 0.05947663564900826, 'avg_gross': 0.9999998951492524, 'max_single': 0.03333335742354393}
+DONE S11 False {'cagr': -0.6544686771338858, 'mdd': -0.8412945177029117, 'sharpe': -2.374216045823109, 'ending_nav': 0.2096323657229741, 'avg_gross': 0.9950505702683096, 'max_single': 0.06534449011087418} {'cagr': -0.2780040159207945, 'mdd': -0.5346203219350709, 'sharpe': -0.5368232093871558, 'ending_nav': 0.6205610920185474, 'avg_gross': 0.9934465173913651, 'max_single': 0.06674487888813019}
+DONE S12 False {'cagr': 0.02632811735102858, 'mdd': -0.15734272968216456, 'sharpe': 0.2399537776325772, 'ending_nav': 1.0389475988717667, 'avg_gross': 0.9985221532288562, 'max_single': 0.03656541928648949} {'cagr': 0.9522423069495094, 'mdd': -0.10988288674607571, 'sharpe': 0.9518307593830115, 'ending_nav': 2.6642075507165264, 'avg_gross': 0.9927298526803986, 'max_single': 0.3871598541736603}
+DONE S13 False {'cagr': -0.24934053136078427, 'mdd': -0.5364495545588082, 'sharpe': -0.573792193767052, 'ending_nav': 0.6559477808857607, 'avg_gross': 0.9999999072444573, 'max_single': 0.04587656259536743} {'cagr': 0.17879260388187213, 'mdd': -0.24296297699736846, 'sharpe': 0.7229423569718375, 'ending_nav': 1.2724481536549597, 'avg_gross': 0.999999903330282, 'max_single': 0.0518326610326767}
+FINAL_STATUS {"data_source": "newbiestring-lang/astock", "rows": 6006046, "stocks": 5322, "sessions": 1426, "start": "2020-06-01", "end": "2026-04-17", "alpha_factors": 56, "strategies_tested": 13, "passed": [], "n_passed": 0, "requirement_at_least_10": false, "split": {"dev_end": "2023-05-09", "validation_start": "2023-05-10", "validation_end": "2024-10-28", "test_start": "2024-10-29"}, "meta": {}, "limitations": ["forward-adjusted BaoStock prices", "no PIT sector labels", "no dynamic ST flag/exact 5% ST limit", "no exact daily limit-price table; strategy S10 event gate approximated from prior close and board/date rule", "source notes early history incomplete for about 685 old stocks"]}
+	Command being timed: "python research/multialpha/code/remote_fast56.py --data-dir research/multialpha/work/data --out research/multialpha/results"
+	User time (seconds): 75.30
+	System time (seconds): 1.92
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:16.46
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5762752
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 3
+	Minor (reclaiming a frame) page faults: 414501
+	Voluntary context switches: 330
+	Involuntary context switches: 608
+	Swaps: 0
+	File system inputs: 2144
+	File system outputs: 496
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
