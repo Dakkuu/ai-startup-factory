@@ -1,0 +1,57 @@
+name: MultiAlpha A-share Backtest
+
+on:
+  push:
+    branches: [multialpha-backtest-20260830]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backtest:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      PYTHONUNBUFFERED: '1'
+      OMP_NUM_THREADS: '4'
+      OPENBLAS_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
+      MALLOC_ARENA_MAX: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'numpy<2.3' pandas==2.2.3 pyarrow==17.0.0 tabulate
+      - name: Restore frozen backtest code
+        run: |
+          mkdir -p research/multialpha/work/code
+          base64 -d research/multialpha/bundle.b64 > /tmp/multialpha.zip
+          unzip -o /tmp/multialpha.zip -d research/multialpha/work/code
+      - name: Download public A-share panel
+        run: |
+          mkdir -p research/multialpha/work/data
+          cd research/multialpha/work/data
+          for f in kline_000.parquet kline_002.parquet kline_300.parquet kline_600.parquet kline_688.parquet; do
+            curl -L --fail --retry 5 --retry-delay 3 -o "$f" "https://raw.githubusercontent.com/newbiestring-lang/astock/main/$f"
+          done
+          ls -lh
+      - name: Run strict 68-factor multi-strategy backtest
+        run: |
+          rm -rf research/multialpha/results
+          mkdir -p research/multialpha/results
+          cd research/multialpha/work/code
+          /usr/bin/time -v python remote_astock_backtest.py --data-dir ../data --out ../../results 2>&1 | tee ../../results/RUN.log
+      - name: Commit results
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/multialpha/results || true
+          git commit -m 'MultiAlpha real-data backtest results [skip ci]' || true
+          git push origin HEAD:${GITHUB_REF_NAME}
