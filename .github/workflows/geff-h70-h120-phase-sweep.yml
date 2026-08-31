@@ -1,0 +1,49 @@
+name: GEff H70-H120 Phase Sweep
+
+on:
+  push:
+    branches:
+      - geff-h70-h120-phase-sweep-20260901
+  workflow_dispatch:
+
+jobs:
+  phase-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip numpy pandas
+      - name: Decode runner
+        run: |
+          base64 -d research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64 | gzip -dc > research/geff_phase/run_geff_h70_h120_phase_sweep.py
+          sed -i 's/phase_metrics_285/phase_metrics_209/g; s/daily_{name}_285/daily_{name}_209/g; s/All 285 Hxphase cells/All 209 Hxphase cells/g' research/geff_phase/run_geff_h70_h120_phase_sweep.py
+      - name: Run stock-level H70-H120 all-phase sweep
+        env:
+          QLIB_RELEASE_TAG: '2026-07-29'
+        run: python -u research/geff_phase/run_geff_h70_h120_phase_sweep.py 2>&1 | tee geff_h70_h120_phase.log
+      - name: Build concise result table
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          p=Path('results_geff_h70_h120_phase/horizon_phase_summary.csv')
+          if p.exists():
+              d=pd.read_csv(p)
+              cols=['H','phase_count','pos1_phase0_cagr','pos1_cagr_min','pos1_cagr_p10','pos1_cagr_median','pos1_cagr_mean','pos1_cagr_p90','pos1_cagr_max','pos1_cagr_std','pos1_mdd_min','pos1_mdd_median','pos1_sharpe_median','pos1_phase0_rank_desc','pos1_positive_phase_fraction']
+              d[cols].to_csv('results_geff_h70_h120_phase/USER_SUMMARY.csv',index=False)
+              print(d[cols].to_string(index=False))
+          PY
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-h70-h120-phase-sweep-results
+          path: |
+            results_geff_h70_h120_phase/
+            geff_h70_h120_phase.log
+          retention-days: 14
