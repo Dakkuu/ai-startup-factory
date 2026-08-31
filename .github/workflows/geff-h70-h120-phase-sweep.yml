@@ -1,4 +1,4 @@
-name: GEff H70-H120 Phase Sweep
+name: GEff Phase-Neutral 2006-2026
 
 on:
   push:
@@ -17,33 +17,68 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: python -m pip install --upgrade pip numpy pandas
-      - name: Decode runner
+      - name: Decode and patch runner
         run: |
-          base64 -d research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64 | gzip -dc > research/geff_phase/run_geff_h70_h120_phase_sweep.py
-          sed -i 's/phase_metrics_285/phase_metrics_209/g; s/daily_{name}_285/daily_{name}_209/g; s/All 285 Hxphase cells/All 209 Hxphase cells/g' research/geff_phase/run_geff_h70_h120_phase_sweep.py
-      - name: Run stock-level H70-H120 all-phase sweep
+          base64 -d research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64 | gzip -dc > research/geff_phase/run_geff_phase_neutral_long.py
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('research/geff_phase/run_geff_phase_neutral_long.py')
+          s=p.read_text()
+          repl={
+            "BASE_SIGNAL = pd.Timestamp('2016-07-29')":"BASE_SIGNAL = pd.Timestamp('2006-01-06')",
+            "CONTROL_START = pd.Timestamp('2016-08-02')":"CONTROL_START = pd.Timestamp('2006-01-10')",
+            "LOAD_START = pd.Timestamp('2014-01-02')":"LOAD_START = pd.Timestamp('2004-01-02')",
+            "HORIZONS = list(range(30, 121, 5))":"HORIZONS = [80,85,90,95,100]",
+            "phase_metrics_285.csv":"phase_metrics_90.csv",
+            "daily_{name}_285.csv.gz":"daily_{name}_90.csv.gz",
+            "All 285 Hxphase cells":"All 90 Hxphase cells"
+          }
+          for a,b in repl.items():
+              if a not in s: print('WARN missing',a)
+              s=s.replace(a,b)
+          p.write_text(s)
+          PY
+      - name: Run stock-level H80-H100 all-phase sweep 2006-2026
         env:
-          QLIB_RELEASE_TAG: '2026-07-29'
-        run: python -u research/geff_phase/run_geff_h70_h120_phase_sweep.py 2>&1 | tee geff_h70_h120_phase.log
-      - name: Build concise result table
-        if: always()
+          QLIB_RELEASE_TAG: '2026-08-30'
+        run: python -u research/geff_phase/run_geff_phase_neutral_long.py 2>&1 | tee geff_phase_neutral_long.log
+      - name: Build fixed equal-H phase-neutral ensemble
         run: |
           python - <<'PY'
           from pathlib import Path
-          import pandas as pd
-          p=Path('results_geff_h70_h120_phase/horizon_phase_summary.csv')
-          if p.exists():
-              d=pd.read_csv(p)
-              cols=['H','phase_count','pos1_phase0_cagr','pos1_cagr_min','pos1_cagr_p10','pos1_cagr_median','pos1_cagr_mean','pos1_cagr_p90','pos1_cagr_max','pos1_cagr_std','pos1_mdd_min','pos1_mdd_median','pos1_sharpe_median','pos1_phase0_rank_desc','pos1_positive_phase_fraction']
-              d[cols].to_csv('results_geff_h70_h120_phase/USER_SUMMARY.csv',index=False)
-              print(d[cols].to_string(index=False))
+          import pandas as pd, numpy as np
+          P=Path('results_geff_horizon_phase'); HS=[80,85,90,95,100]
+          def metrics(r,d):
+              r=np.asarray(r,float); nav=np.cumprod(1+r)
+              years=max((d.iloc[-1]-d.iloc[0]).days/365.2425,len(r)/252.0)
+              cagr=nav[-1]**(1/years)-1 if nav[-1]>0 else -1.0
+              peak=np.maximum.accumulate(nav); mdd=float(np.min(nav/peak-1))
+              sd=float(np.std(r,ddof=1)); sh=float(np.mean(r)/sd*np.sqrt(252.0)) if sd>0 else np.nan
+              return cagr,mdd,sh,float(nav[-1])
+          rows=[]; daily=None
+          for layer in ['mom','def','pre_risk','h1_v12','pos1']:
+              x=pd.read_csv(P/f'daily_{layer}_90.csv.gz',compression='gzip'); x.trade_date=pd.to_datetime(x.trade_date)
+              hs=[]
+              for h in HS:
+                  cols=[c for c in x.columns if c.startswith(f'H{h}_P')]
+                  hs.append(x[cols].mean(axis=1).to_numpy(float))
+              r=np.mean(np.vstack(hs),axis=0)
+              if daily is None: daily=pd.DataFrame({'trade_date':x.trade_date})
+              daily[layer]=r
+              for label,a,b in [('2006_2016','2006-01-10','2016-08-01'),('2016_2026','2016-08-02','2026-07-29'),('2006_2026','2006-01-10','2026-07-29')]:
+                  g=(x.trade_date>=a)&(x.trade_date<=b)
+                  c,m,s,n=metrics(r[g],x.trade_date[g].reset_index(drop=True))
+                  rows.append({'layer':layer,'period':label,'cagr':c,'mdd':m,'sharpe':s,'ending_nav':n})
+          daily.to_csv(P/'phase_neutral_equalH_daily.csv',index=False)
+          q=pd.DataFrame(rows); q.to_csv(P/'phase_neutral_equalH_summary.csv',index=False)
+          print(q.to_string(index=False))
           PY
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: geff-h70-h120-phase-sweep-results
+          name: geff-phase-neutral-2006-2026-results
           path: |
-            results_geff_h70_h120_phase/
-            geff_h70_h120_phase.log
+            results_geff_horizon_phase/
+            geff_phase_neutral_long.log
           retention-days: 14
