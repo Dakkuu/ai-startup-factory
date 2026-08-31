@@ -1,4 +1,4 @@
-name: GEff Phase-Neutral 2006-2026
+name: GEff Factor IC and Random Placebo
 
 on:
   push:
@@ -17,65 +17,69 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: python -m pip install --upgrade pip numpy pandas
-      - name: Decode and patch runner
+      - name: Decode and patch IC runner
         run: |
-          base64 -d research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64 | gzip -dc > research/geff_phase/run_geff_phase_neutral_long.py
+          base64 -d research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64 | gzip -dc > research/geff_phase/run_geff_factor_ic.py
           python - <<'PY'
           from pathlib import Path
-          p=Path('research/geff_phase/run_geff_phase_neutral_long.py')
+          p=Path('research/geff_phase/run_geff_factor_ic.py')
           s=p.read_text()
-          repl={
-            "BASE_SIGNAL = pd.Timestamp('2016-07-29')":"BASE_SIGNAL = pd.Timestamp('2006-01-06')",
-            "CONTROL_START = pd.Timestamp('2016-08-02')":"CONTROL_START = pd.Timestamp('2006-01-10')",
-            "LOAD_START = pd.Timestamp('2014-01-02')":"LOAD_START = pd.Timestamp('2004-01-02')",
-            "phase_metrics_285.csv":"phase_metrics_90.csv",
-            "daily_{name}_285.csv.gz":"daily_{name}_90.csv.gz",
-            "All 285 Hxphase cells":"All 90 Hxphase cells"
-          }
-          for a,b in repl.items(): s=s.replace(a,b)
+          s=s.replace("BASE_SIGNAL = pd.Timestamp('2016-07-29')","BASE_SIGNAL = pd.Timestamp('2006-01-06')")
+          s=s.replace("CONTROL_START = pd.Timestamp('2016-08-02')","CONTROL_START = pd.Timestamp('2006-01-10')")
+          s=s.replace("LOAD_START = pd.Timestamp('2014-01-02')","LOAD_START = pd.Timestamp('2004-01-02')")
+          needle="    mom_rank,def_rank,elig_n=compute_signal_ranks(close,ret,eps,cal,signal_indices,codes,start_dates,end_dates)\n"
+          block=r'''    mom_rank,def_rank,elig_n=compute_signal_ranks(close,ret,eps,cal,signal_indices,codes,start_dates,end_dates)
+    rng=np.random.default_rng(20260901)
+    rows=[]
+    for w,t in enumerate(signal_indices):
+        for style,ranks in [('MOM',mom_rank),('DEF',def_rank)]:
+            rk=ranks[w].astype(np.float64); base=rk>0
+            for fh in [5,20,60,90]:
+                if t+fh>=len(cal): continue
+                p0=close[t].astype(np.float64,copy=False); p1=close[t+fh].astype(np.float64,copy=False)
+                g=base & np.isfinite(p0)&np.isfinite(p1)&(p0>0)&(p1>0)
+                ids=np.flatnonzero(g)
+                if len(ids)<20: continue
+                y=p1[ids]/p0[ids]-1.0; x=-rk[ids]
+                xr=pd.Series(x).rank(method='average').to_numpy(float); yr=pd.Series(y).rank(method='average').to_numpy(float)
+                ic=float(np.corrcoef(xr,yr)[0,1]) if np.std(xr)>0 and np.std(yr)>0 else np.nan
+                order=np.argsort(rk[ids]); k=min(10,len(ids)); top=float(np.mean(y[order[:k]])); allm=float(np.mean(y)); spread=top-allm
+                rand=[]
+                for _ in range(30):
+                    jj=rng.choice(len(ids),size=k,replace=False); rand.append(float(np.mean(y[jj])))
+                rows.append({'signal_date':str(cal[t].date()),'style':style,'fwd_sessions':fh,'n':len(ids),'rank_ic':ic,'top10_spread':spread,'random10_spread':float(np.mean(rand)-allm)})
+    q=pd.DataFrame(rows); q['signal_date']=pd.to_datetime(q.signal_date); q.to_csv(OUT/'factor_ic_weekly.csv',index=False)
+    def nw_t(x,lag):
+        x=np.asarray(pd.Series(x).dropna(),float); n=len(x)
+        if n<3:return np.nan
+        u=x-x.mean(); s0=float(np.dot(u,u)/n); L=min(int(lag),n-1)
+        for k in range(1,L+1): s0 += 2*(1-k/(L+1))*float(np.dot(u[k:],u[:-k])/n)
+        se=math.sqrt(max(s0,0)/n); return float(x.mean()/se) if se>0 else np.nan
+    out=[]
+    eras=[('ALL','2006-01-01','2026-07-29'),('2014_2016','2014-01-01','2016-08-01'),('2016_2026','2016-08-02','2026-07-29')]
+    for era,a,b in eras:
+      z=q[(q.signal_date>=a)&(q.signal_date<=b)]
+      for (style,fh),g in z.groupby(['style','fwd_sessions']):
+        lag=max(1,int(math.ceil(fh/5)))
+        out.append({'era':era,'style':style,'fwd_sessions':fh,'n_signals':len(g),'median_names':float(g.n.median()),'ic_mean':float(g.rank_ic.mean()),'ic_median':float(g.rank_ic.median()),'ic_positive_fraction':float((g.rank_ic>0).mean()),'ic_nw_t':nw_t(g.rank_ic,lag),'top10_spread_mean':float(g.top10_spread.mean()),'top10_spread_nw_t':nw_t(g.top10_spread,lag),'random10_spread_mean':float(g.random10_spread.mean()),'random10_spread_nw_t':nw_t(g.random10_spread,lag)})
+    sm=pd.DataFrame(out); sm.to_csv(OUT/'factor_ic_summary.csv',index=False); print(sm.to_string(index=False)); return
+'''
+          if needle not in s: raise SystemExit('IC injection point missing')
+          s=s.replace(needle,block)
           p.write_text(s)
           PY
-      - name: Run stock-level all-phase sweep 2006-2026
+      - name: Run factor IC and random placebo
         env:
           QLIB_RELEASE_TAG: '2026-08-30'
-        run: set -o pipefail; python -u research/geff_phase/run_geff_phase_neutral_long.py 2>&1 | tee geff_phase_neutral_long.log
-      - name: Build fixed H80-H100 equal-H phase-neutral ensemble
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import pandas as pd, numpy as np
-          P=Path('results_geff_h70_h120_phase'); HS=[80,85,90,95,100]
-          def metrics(r,d):
-              r=np.asarray(r,float); nav=np.cumprod(1+r)
-              years=max((d.iloc[-1]-d.iloc[0]).days/365.2425,len(r)/252.0)
-              cagr=nav[-1]**(1/years)-1 if nav[-1]>0 else -1.0
-              peak=np.maximum.accumulate(nav); mdd=float(np.min(nav/peak-1))
-              sd=float(np.std(r,ddof=1)); sh=float(np.mean(r)/sd*np.sqrt(252.0)) if sd>0 else np.nan
-              return cagr,mdd,sh,float(nav[-1])
-          rows=[]; daily=None
-          for layer in ['mom','def','pre_risk','h1_v12','pos1']:
-              x=pd.read_csv(P/f'daily_{layer}_90.csv.gz',compression='gzip'); x.trade_date=pd.to_datetime(x.trade_date)
-              hs=[]
-              for h in HS:
-                  cols=[c for c in x.columns if c.startswith(f'H{h}_P')]
-                  hs.append(x[cols].mean(axis=1).to_numpy(float))
-              r=np.mean(np.vstack(hs),axis=0)
-              if daily is None: daily=pd.DataFrame({'trade_date':x.trade_date})
-              daily[layer]=r
-              for label,a,b in [('2006_2016','2006-01-10','2016-08-01'),('2016_2026','2016-08-02','2026-07-29'),('2006_2026','2006-01-10','2026-07-29')]:
-                  g=(x.trade_date>=a)&(x.trade_date<=b)
-                  c,m,s,n=metrics(r[g],x.trade_date[g].reset_index(drop=True))
-                  rows.append({'layer':layer,'period':label,'cagr':c,'mdd':m,'sharpe':s,'ending_nav':n})
-          daily.to_csv(P/'phase_neutral_equalH_daily.csv',index=False)
-          q=pd.DataFrame(rows); q.to_csv(P/'phase_neutral_equalH_summary.csv',index=False)
-          print(q.to_string(index=False))
-          PY
-      - name: Upload results
+        run: set -o pipefail; python -u research/geff_phase/run_geff_factor_ic.py 2>&1 | tee geff_factor_ic.log
+      - name: Upload IC results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: geff-phase-neutral-2006-2026-results-v2
+          name: geff-factor-ic-random-placebo
           path: |
-            results_geff_h70_h120_phase/
-            geff_phase_neutral_long.log
+            results_geff_h70_h120_phase/factor_ic_weekly.csv
+            results_geff_h70_h120_phase/factor_ic_summary.csv
+            results_geff_h70_h120_phase/ranking_audit.csv
+            geff_factor_ic.log
           retention-days: 14
