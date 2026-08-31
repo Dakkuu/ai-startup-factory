@@ -22,50 +22,16 @@ jobs:
           base64 -d research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64 | gzip -dc > research/geff_phase/run_geff_factor_ic.py
           python - <<'PY'
           from pathlib import Path
+          import base64
           p=Path('research/geff_phase/run_geff_factor_ic.py')
           s=p.read_text()
           s=s.replace("BASE_SIGNAL = pd.Timestamp('2016-07-29')","BASE_SIGNAL = pd.Timestamp('2006-01-06')")
           s=s.replace("CONTROL_START = pd.Timestamp('2016-08-02')","CONTROL_START = pd.Timestamp('2006-01-10')")
           s=s.replace("LOAD_START = pd.Timestamp('2014-01-02')","LOAD_START = pd.Timestamp('2004-01-02')")
           needle="    mom_rank,def_rank,elig_n=compute_signal_ranks(close,ret,eps,cal,signal_indices,codes,start_dates,end_dates)\n"
-          block=r'''    mom_rank,def_rank,elig_n=compute_signal_ranks(close,ret,eps,cal,signal_indices,codes,start_dates,end_dates)
-    rng=np.random.default_rng(20260901)
-    rows=[]
-    for w,t in enumerate(signal_indices):
-        for style,ranks in [('MOM',mom_rank),('DEF',def_rank)]:
-            rk=ranks[w].astype(np.float64); base=rk>0
-            for fh in [5,20,60,90]:
-                if t+fh>=len(cal): continue
-                p0=close[t].astype(np.float64,copy=False); p1=close[t+fh].astype(np.float64,copy=False)
-                g=base & np.isfinite(p0)&np.isfinite(p1)&(p0>0)&(p1>0)
-                ids=np.flatnonzero(g)
-                if len(ids)<20: continue
-                y=p1[ids]/p0[ids]-1.0; x=-rk[ids]
-                xr=pd.Series(x).rank(method='average').to_numpy(float); yr=pd.Series(y).rank(method='average').to_numpy(float)
-                ic=float(np.corrcoef(xr,yr)[0,1]) if np.std(xr)>0 and np.std(yr)>0 else np.nan
-                order=np.argsort(rk[ids]); k=min(10,len(ids)); top=float(np.mean(y[order[:k]])); allm=float(np.mean(y)); spread=top-allm
-                rand=[]
-                for _ in range(30):
-                    jj=rng.choice(len(ids),size=k,replace=False); rand.append(float(np.mean(y[jj])))
-                rows.append({'signal_date':str(cal[t].date()),'style':style,'fwd_sessions':fh,'n':len(ids),'rank_ic':ic,'top10_spread':spread,'random10_spread':float(np.mean(rand)-allm)})
-    q=pd.DataFrame(rows); q['signal_date']=pd.to_datetime(q.signal_date); q.to_csv(OUT/'factor_ic_weekly.csv',index=False)
-    def nw_t(x,lag):
-        x=np.asarray(pd.Series(x).dropna(),float); n=len(x)
-        if n<3:return np.nan
-        u=x-x.mean(); s0=float(np.dot(u,u)/n); L=min(int(lag),n-1)
-        for k in range(1,L+1): s0 += 2*(1-k/(L+1))*float(np.dot(u[k:],u[:-k])/n)
-        se=math.sqrt(max(s0,0)/n); return float(x.mean()/se) if se>0 else np.nan
-    out=[]
-    eras=[('ALL','2006-01-01','2026-07-29'),('2014_2016','2014-01-01','2016-08-01'),('2016_2026','2016-08-02','2026-07-29')]
-    for era,a,b in eras:
-      z=q[(q.signal_date>=a)&(q.signal_date<=b)]
-      for (style,fh),g in z.groupby(['style','fwd_sessions']):
-        lag=max(1,int(math.ceil(fh/5)))
-        out.append({'era':era,'style':style,'fwd_sessions':fh,'n_signals':len(g),'median_names':float(g.n.median()),'ic_mean':float(g.rank_ic.mean()),'ic_median':float(g.rank_ic.median()),'ic_positive_fraction':float((g.rank_ic>0).mean()),'ic_nw_t':nw_t(g.rank_ic,lag),'top10_spread_mean':float(g.top10_spread.mean()),'top10_spread_nw_t':nw_t(g.top10_spread,lag),'random10_spread_mean':float(g.random10_spread.mean()),'random10_spread_nw_t':nw_t(g.random10_spread,lag)})
-    sm=pd.DataFrame(out); sm.to_csv(OUT/'factor_ic_summary.csv',index=False); print(sm.to_string(index=False)); return
-'''
+          payload=base64.b64decode('ICAgIG1vbV9yYW5rLGRlZl9yYW5rLGVsaWdfbj1jb21wdXRlX3NpZ25hbF9yYW5rcyhjbG9zZSxyZXQsZXBzLGNhbCxzaWduYWxfaW5kaWNlcyxjb2RlcyxzdGFydF9kYXRlcyxlbmRfZGF0ZXMpCiAgICBybmc9bnAucmFuZG9tLmRlZmF1bHRfcm5nKDIwMjYwOTAxKQogICAgcm93cz1bXQogICAgZm9yIHcsdCBpbiBlbnVtZXJhdGUoc2lnbmFsX2luZGljZXMpOgogICAgICAgIGZvciBzdHlsZSxyYW5rcyBpbiBbKCdNT00nLG1vbV9yYW5rKSwoJ0RFRicsZGVmX3JhbmspXToKICAgICAgICAgICAgcms9cmFua3Nbd10uYXN0eXBlKG5wLmZsb2F0NjQpOyBiYXNlPXJrPjAKICAgICAgICAgICAgZm9yIGZoIGluIFs1LDIwLDYwLDkwXToKICAgICAgICAgICAgICAgIGlmIHQrZmg+PWxlbihjYWwpOiBjb250aW51ZQogICAgICAgICAgICAgICAgcDA9Y2xvc2VbdF0uYXN0eXBlKG5wLmZsb2F0NjQsY29weT1GYWxzZSk7IHAxPWNsb3NlW3QrZmhdLmFzdHlwZShucC5mbG9hdDY0LGNvcHk9RmFsc2UpCiAgICAgICAgICAgICAgICBnPWJhc2UgJiBucC5pc2Zpbml0ZShwMCkmbnAuaXNmaW5pdGUocDEpJihwMD4wKSYocDE+MCkKICAgICAgICAgICAgICAgIGlkcz1ucC5mbGF0bm9uemVybyhnKQogICAgICAgICAgICAgICAgaWYgbGVuKGlkcyk8MjA6IGNvbnRpbnVlCiAgICAgICAgICAgICAgICB5PXAxW2lkc10vcDBbaWRzXS0xLjA7IHg9LXJrW2lkc10KICAgICAgICAgICAgICAgIHhyPXBkLlNlcmllcyh4KS5yYW5rKG1ldGhvZD0nYXZlcmFnZScpLnRvX251bXB5KGZsb2F0KTsgeXI9cGQuU2VyaWVzKHkpLnJhbmsobWV0aG9kPSdhdmVyYWdlJykudG9fbnVtcHkoZmxvYXQpCiAgICAgICAgICAgICAgICBpYz1mbG9hdChucC5jb3JyY29lZih4cix5cilbMCwxXSkgaWYgbnAuc3RkKHhyKT4wIGFuZCBucC5zdGQoeXIpPjAgZWxzZSBucC5uYW4KICAgICAgICAgICAgICAgIG9yZGVyPW5wLmFyZ3NvcnQocmtbaWRzXSk7IGs9bWluKDEwLGxlbihpZHMpKTsgdG9wPWZsb2F0KG5wLm1lYW4oeVtvcmRlcls6a11dKSk7IGFsbG09ZmxvYXQobnAubWVhbih5KSk7IHNwcmVhZD10b3AtYWxsbQogICAgICAgICAgICAgICAgcmFuZD1bXQogICAgICAgICAgICAgICAgZm9yIF8gaW4gcmFuZ2UoMzApOgogICAgICAgICAgICAgICAgICAgIGpqPXJuZy5jaG9pY2UobGVuKGlkcyksc2l6ZT1rLHJlcGxhY2U9RmFsc2UpOyByYW5kLmFwcGVuZChmbG9hdChucC5tZWFuKHlbampdKSkpCiAgICAgICAgICAgICAgICByb3dzLmFwcGVuZCh7J3NpZ25hbF9kYXRlJzpzdHIoY2FsW3RdLmRhdGUoKSksJ3N0eWxlJzpzdHlsZSwnZndkX3Nlc3Npb25zJzpmaCwnbic6bGVuKGlkcyksJ3JhbmtfaWMnOmljLCd0b3AxMF9zcHJlYWQnOnNwcmVhZCwncmFuZG9tMTBfc3ByZWFkJzpmbG9hdChucC5tZWFuKHJhbmQpLWFsbG0pfSkKICAgIHE9cGQuRGF0YUZyYW1lKHJvd3MpOyBxWydzaWduYWxfZGF0ZSddPXBkLnRvX2RhdGV0aW1lKHEuc2lnbmFsX2RhdGUpOyBxLnRvX2NzdihPVVQvJ2ZhY3Rvcl9pY193ZWVrbHkuY3N2JyxpbmRleD1GYWxzZSkKICAgIGRlZiBud190KHgsbGFnKToKICAgICAgICB4PW5wLmFzYXJyYXkocGQuU2VyaWVzKHgpLmRyb3BuYSgpLGZsb2F0KTsgbj1sZW4oeCkKICAgICAgICBpZiBuPDM6cmV0dXJuIG5wLm5hbgogICAgICAgIHU9eC14Lm1lYW4oKTsgczA9ZmxvYXQobnAuZG90KHUsdSkvbik7IEw9bWluKGludChsYWcpLG4tMSkKICAgICAgICBmb3IgayBpbiByYW5nZSgxLEwrMSk6IHMwICs9IDIqKDEtay8oTCsxKSkqZmxvYXQobnAuZG90KHVbazpdLHVbOi1rXSkvbikKICAgICAgICBzZT1tYXRoLnNxcnQobWF4KHMwLDApL24pOyByZXR1cm4gZmxvYXQoeC5tZWFuKCkvc2UpIGlmIHNlPjAgZWxzZSBucC5uYW4KICAgIG91dD1bXQogICAgZXJhcz1bKCdBTEwnLCcyMDA2LTAxLTAxJywnMjAyNi0wNy0yOScpLCgnMjAxNF8yMDE2JywnMjAxNC0wMS0wMScsJzIwMTYtMDgtMDEnKSwoJzIwMTZfMjAyNicsJzIwMTYtMDgtMDInLCcyMDI2LTA3LTI5JyldCiAgICBmb3IgZXJhLGEsYiBpbiBlcmFzOgogICAgICB6PXFbKHEuc2lnbmFsX2RhdGU+PWEpJihxLnNpZ25hbF9kYXRlPD1iKV0KICAgICAgZm9yIChzdHlsZSxmaCksZyBpbiB6Lmdyb3VwYnkoWydzdHlsZScsJ2Z3ZF9zZXNzaW9ucyddKToKICAgICAgICBsYWc9bWF4KDEsaW50KG1hdGguY2VpbChmaC81KSkpCiAgICAgICAgb3V0LmFwcGVuZCh7J2VyYSc6ZXJhLCdzdHlsZSc6c3R5bGUsJ2Z3ZF9zZXNzaW9ucyc6ZmgsJ25fc2lnbmFscyc6bGVuKGcpLCdtZWRpYW5fbmFtZXMnOmZsb2F0KGcubi5tZWRpYW4oKSksJ2ljX21lYW4nOmZsb2F0KGcucmFua19pYy5tZWFuKCkpLCdpY19tZWRpYW4nOmZsb2F0KGcucmFua19pYy5tZWRpYW4oKSksJ2ljX3Bvc2l0aXZlX2ZyYWN0aW9uJzpmbG9hdCgoZy5yYW5rX2ljPjApLm1lYW4oKSksJ2ljX253X3QnOm53X3QoZy5yYW5rX2ljLGxhZyksJ3RvcDEwX3NwcmVhZF9tZWFuJzpmbG9hdChnLnRvcDEwX3NwcmVhZC5tZWFuKCkpLCd0b3AxMF9zcHJlYWRfbndfdCc6bndfdChnLnRvcDEwX3NwcmVhZCxsYWcpLCdyYW5kb20xMF9zcHJlYWRfbWVhbic6ZmxvYXQoZy5yYW5kb20xMF9zcHJlYWQubWVhbigpKSwncmFuZG9tMTBfc3ByZWFkX253X3QnOm53X3QoZy5yYW5kb20xMF9zcHJlYWQsbGFnKX0pCiAgICBzbT1wZC5EYXRhRnJhbWUob3V0KTsgc20udG9fY3N2KE9VVC8nZmFjdG9yX2ljX3N1bW1hcnkuY3N2JyxpbmRleD1GYWxzZSk7IHByaW50KHNtLnRvX3N0cmluZyhpbmRleD1GYWxzZSkpOyByZXR1cm4K').decode()
           if needle not in s: raise SystemExit('IC injection point missing')
-          s=s.replace(needle,block)
+          s=s.replace(needle,payload)
           p.write_text(s)
           PY
       - name: Run factor IC and random placebo
