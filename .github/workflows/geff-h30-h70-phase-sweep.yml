@@ -1,0 +1,56 @@
+name: GEff H30-H70 Phase Sweep
+
+on:
+  push:
+    branches:
+      - geff-h30-h70-phase-sweep-20260901
+  workflow_dispatch:
+
+jobs:
+  phase-sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip numpy pandas
+      - name: Decode and patch runner
+        run: |
+          base64 -d research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64 | gzip -dc > research/geff_phase/run_geff_h30_h70_phase_sweep.py
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('research/geff_phase/run_geff_h30_h70_phase_sweep.py')
+          s=p.read_text()
+          s=s.replace("HORIZONS = list(range(30, 121, 5))", "HORIZONS = list(range(30, 71, 5))")
+          s=s.replace("HORIZONS = list(range(70, 121, 5))", "HORIZONS = list(range(30, 71, 5))")
+          p.write_text(s)
+          if "HORIZONS = list(range(30, 71, 5))" not in s:
+              raise SystemExit('failed to patch HORIZONS')
+          PY
+      - name: Run stock-level H30-H70 all-phase sweep
+        env:
+          QLIB_RELEASE_TAG: '2026-08-30'
+        run: set -o pipefail; python -u research/geff_phase/run_geff_h30_h70_phase_sweep.py 2>&1 | tee geff_h30_h70_phase.log
+      - name: Build concise result table
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from pathlib import Path
+          out=Path('results_geff_horizon_phase')
+          x=pd.read_csv(out/'horizon_phase_summary.csv')
+          cols=['H','phase_count','pos1_phase0_cagr','pos1_cagr_min','pos1_cagr_p10','pos1_cagr_median','pos1_cagr_p90','pos1_cagr_max','pos1_sharpe_median','pos1_mdd_min','pos1_phase0_rank_desc']
+          x[cols].to_csv(out/'H30_H70_CONCISE.csv',index=False)
+          print(x[cols].to_string(index=False))
+          PY
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-h30-h70-phase-sweep-results
+          path: |
+            results_geff_horizon_phase/
+            geff_h30_h70_phase.log
+          retention-days: 14
