@@ -1,0 +1,47 @@
+name: GEff Fundamental China Concentration V1
+on:
+  push:
+    branches: [geff-fundamental-pit-20260902]
+    paths:
+      - '.github/workflows/geff-fundamental-china-concentration-v1.yml'
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      OMP_NUM_THREADS: '4'
+      OPENBLAS_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
+      NUMEXPR_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests akshare pyarrow
+      - name: Download PIT fundamental artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p a-share-backtest/artifact_cache/value a-share-backtest/artifact_cache/stmt
+          gh run download 33634216408 -n geff-fundamental-period-v2-value -D a-share-backtest/artifact_cache/value
+          gh run download 33634216408 -n geff-fundamental-period-v2-3stmt -D a-share-backtest/artifact_cache/stmt
+      - name: Run concentration audit
+        working-directory: a-share-backtest
+        run: |
+          python -u - <<'PY'
+          import json
+          import run_geff_fundamental_china_risk_v1 as m
+          q,p,cal,members,ua,market_code,bm=m.build_candidate()
+          d,s=m.concentration_run(q,cal,members,bm)
+          ctrl=d[(d.N==10)&(d.H==90)&(d.phase==0)].iloc[0]
+          meta={'control':float(ctrl.cagr),'expected':m.BASE_CONTROL_H90_PHASE0,'pass':bool(abs(float(ctrl.cagr)-m.BASE_CONTROL_H90_PHASE0)<5e-10),'market':market_code,'universe':ua}
+          (m.OUT/'concentration_metadata.json').write_text(json.dumps(meta,indent=2,default=str))
+          print(s.to_string(index=False),flush=True); print(json.dumps(meta,indent=2,default=str),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: geff-china-concentration-v1
+          path: a-share-backtest/results_geff_fundamental_china_risk_v1/
+          retention-days: 30
