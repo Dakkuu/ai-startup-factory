@@ -1,0 +1,45 @@
+name: GEff Factor Robust Opt V1
+
+on:
+  push:
+    branches:
+      - geff-factor-robust-opt-20260902
+    paths:
+      - 'a-share-backtest/run_geff_factor_robust_opt_v1.py'
+      - '.github/workflows/geff-factor-robust-opt-v1.yml'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run preregistered robust factor optimization
+        working-directory: a-share-backtest
+        run: |
+          set -o pipefail
+          python -u run_geff_factor_robust_opt_v1.py 2>&1 | tee geff_factor_robust_opt_v1.log
+      - name: Print verdict
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          cat results_geff_factor_robust_opt_v1/verdict.json || true
+          head -30 results_geff_factor_robust_opt_v1/candidate_robust_summary.csv || true
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-factor-robust-opt-v1-results
+          path: |
+            a-share-backtest/results_geff_factor_robust_opt_v1/
+            a-share-backtest/geff_factor_robust_opt_v1.log
+          retention-days: 14
