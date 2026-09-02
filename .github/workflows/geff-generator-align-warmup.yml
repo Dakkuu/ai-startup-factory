@@ -1,0 +1,57 @@
+name: GEff Generator Alignment Warmup
+
+on:
+  push:
+    branches:
+      - geff-generator-align-20260902
+    paths:
+      - '.github/workflows/geff-generator-align-warmup.yml'
+  workflow_dispatch:
+
+jobs:
+  align-warmup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip numpy pandas
+      - name: Decode and patch runner
+        run: |
+          base64 -d research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64 | gzip -dc > research/geff_phase/run_geff_align_warmup.py
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('research/geff_phase/run_geff_align_warmup.py')
+          s=p.read_text()
+          s=s.replace("LOAD_START = pd.Timestamp('2014-01-02')", "LOAD_START = pd.Timestamp('2010-01-04')")
+          s=s.replace("HORIZONS = list(range(30, 121, 5))", "HORIZONS = [75, 90, 105]")
+          s=s.replace("HORIZONS = list(range(70, 121, 5))", "HORIZONS = [75, 90, 105]")
+          p.write_text(s)
+          assert "2010-01-04" in s
+          assert "HORIZONS = [75, 90, 105]" in s
+          PY
+      - name: Run warmup diagnostic
+        env:
+          QLIB_RELEASE_TAG: '2026-08-30'
+        run: set -o pipefail; python -u research/geff_phase/run_geff_align_warmup.py 2>&1 | tee geff_align_warmup.log
+      - name: Print diagnostics
+        if: always()
+        run: |
+          echo '=== PHASE0 VS EXACT ==='
+          cat results_geff_h70_h120_phase/phase0_vs_exact_headline.csv || true
+          echo '=== RANKING AUDIT HEAD ==='
+          head -20 results_geff_h70_h120_phase/ranking_audit.csv || true
+          echo '=== RANKING AUDIT TAIL ==='
+          tail -10 results_geff_h70_h120_phase/ranking_audit.csv || true
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-generator-align-warmup-results
+          path: |
+            results_geff_h70_h120_phase/
+            geff_align_warmup.log
+          retention-days: 14
