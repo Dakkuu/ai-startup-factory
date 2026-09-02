@@ -1,0 +1,32 @@
+name: GEff Fundamental Period Corrected V2
+on:
+  push:
+    branches: [geff-fundamental-pit-20260902]
+    paths:
+      - 'a-share-backtest/run_geff_fundamental_period_corrected_v2.py'
+      - '.github/workflows/geff-fundamental-period-v2.yml'
+  workflow_dispatch:
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix: {mode: [3stmt, value]}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests akshare pyarrow
+      - name: Run period-corrected mode
+        working-directory: a-share-backtest
+        run: python -u run_geff_fundamental_period_corrected_v2.py ${{ matrix.mode }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: geff-fundamental-period-v2-${{ matrix.mode }}
+          path: |
+            a-share-backtest/results_geff_fundamental_3stmt_period_v2/
+            a-share-backtest/results_geff_fundamental_value_period_v2/
+          retention-days: 14
