@@ -1,0 +1,46 @@
+name: GEff H30-H70 Original Generator
+
+on:
+  push:
+    branches:
+      - geff-original-generator-replay-20260902
+    paths:
+      - '.github/workflows/geff-h30-h70-original-generator.yml'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run original-generator H30-H70 phase sweep
+        working-directory: a-share-backtest
+        run: |
+          set -o pipefail
+          python -u run_geff_h30_h70_from_original_generator.py 2>&1 | tee geff_h30_h70_original.log
+      - name: Print summary
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          cat results_geff_h30_h70_original_generator/horizon_phase_summary.csv || true
+          cat results_geff_h30_h70_original_generator/metadata.json || true
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-h30-h70-original-generator-results
+          path: |
+            a-share-backtest/results_geff_h30_h70_original_generator/
+            a-share-backtest/geff_h30_h70_original.log
+          retention-days: 14
