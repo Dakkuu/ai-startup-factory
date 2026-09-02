@@ -1,0 +1,37 @@
+name: GEff Fundamental Safe V2
+on:
+  push:
+    branches: [geff-fundamental-pit-20260902]
+    paths:
+      - 'a-share-backtest/run_geff_fundamental_safe_v2.py'
+      - '.github/workflows/geff-fundamental-safe-v2.yml'
+  workflow_dispatch:
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix: {mode: [fast, 3stmt, value]}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests akshare pyarrow
+      - name: Run safe PIT mode
+        working-directory: a-share-backtest
+        run: |
+          set -o pipefail
+          python -u run_geff_fundamental_safe_v2.py ${{ matrix.mode }} 2>&1 | tee geff_fundamental_safe_v2_${{ matrix.mode }}.log
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-fundamental-safe-v2-${{ matrix.mode }}
+          path: |
+            a-share-backtest/results_geff_fundamental_fastpit_v1/
+            a-share-backtest/results_geff_fundamental_3stmt_pit_v1/
+            a-share-backtest/results_geff_fundamental_value_pit_v1/
+            a-share-backtest/geff_fundamental_safe_v2_${{ matrix.mode }}.log
+          retention-days: 14
