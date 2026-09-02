@@ -1,0 +1,39 @@
+name: GEff Fundamental 3Stmt PIT V1
+on:
+  push:
+    branches: [geff-fundamental-pit-20260902]
+    paths:
+      - 'a-share-backtest/run_geff_fundamental_3stmt_pit_v1.py'
+      - '.github/workflows/geff-fundamental-3stmt-pit-v1.yml'
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests akshare pyarrow
+      - name: Run 3-statement PIT analysis
+        working-directory: a-share-backtest
+        run: |
+          set -o pipefail
+          python -u run_geff_fundamental_3stmt_pit_v1.py 2>&1 | tee geff_fundamental_3stmt_pit_v1.log
+      - name: Print results
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          cat results_geff_fundamental_3stmt_pit_v1/fundamental_ic.csv || true
+          cat results_geff_fundamental_3stmt_pit_v1/portfolio_summary.csv || true
+          cat results_geff_fundamental_3stmt_pit_v1/metadata.json || true
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-fundamental-3stmt-pit-v1-results
+          path: |
+            a-share-backtest/results_geff_fundamental_3stmt_pit_v1/
+            a-share-backtest/geff_fundamental_3stmt_pit_v1.log
+          retention-days: 14
