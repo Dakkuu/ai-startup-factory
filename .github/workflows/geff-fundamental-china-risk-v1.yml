@@ -28,6 +28,19 @@ jobs:
           mkdir -p a-share-backtest/artifact_cache/value a-share-backtest/artifact_cache/stmt
           gh run download 33634216408 -n geff-fundamental-period-v2-value -D a-share-backtest/artifact_cache/value
           gh run download 33634216408 -n geff-fundamental-period-v2-3stmt -D a-share-backtest/artifact_cache/stmt
+      - name: Apply audited China-execution timing corrections
+        working-directory: a-share-backtest
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('run_geff_fundamental_china_risk_v1.py')
+          s=p.read_text()
+          s=s.replace("if day>pp.entry_date and stop_trigger(pp,float(cl),rule): pending[c]=day", "if stop_trigger(pp,float(cl),rule): pending[c]=day")
+          s=s.replace("cooldown[c]=day+pd.Timedelta(days=cd*2)", "cooldown[c]=trade_cal[min(len(trade_cal)-1, int(trade_cal.searchsorted(day))+cd)]")
+          p.write_text(s)
+          assert 'if day>pp.entry_date and stop_trigger' not in s
+          assert 'trade_cal.searchsorted(day)' in s
+          PY
       - name: Run China-specific concentration and stock stop audit
         working-directory: a-share-backtest
         run: python -u run_geff_fundamental_china_risk_v1.py
