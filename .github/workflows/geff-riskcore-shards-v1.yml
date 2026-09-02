@@ -1,0 +1,28 @@
+name: GEff RiskCore Shards V1 Exact
+on:
+  push:
+    branches: [geff-factor-robust-opt-20260902]
+    paths: ['a-share-backtest/run_geff_riskcore_shard_v1.py','.github/workflows/geff-riskcore-shards-v1.yml']
+  workflow_dispatch:
+jobs:
+  shard:
+    strategy:
+      fail-fast: false
+      matrix: {shard: [0,1,2]}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env: {OMP_NUM_THREADS: 4, OPENBLAS_NUM_THREADS: 4, MKL_NUM_THREADS: 4, NUMEXPR_NUM_THREADS: 4}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run risk-core shard
+        working-directory: a-share-backtest
+        run: python -u run_geff_riskcore_shard_v1.py ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: geff-riskcore-shard-v1-${{ matrix.shard }}
+          path: a-share-backtest/results_geff_riskcore_shard_v1_${{ matrix.shard }}/
+          retention-days: 14
