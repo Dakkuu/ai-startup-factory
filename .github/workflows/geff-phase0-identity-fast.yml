@@ -1,0 +1,42 @@
+name: GEff Original Phase0 Identity Fast
+
+on:
+  push:
+    branches:
+      - geff-original-generator-replay-20260902
+    paths:
+      - '.github/workflows/geff-phase0-identity-fast.yml'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run phase0 identity and H scan
+        working-directory: a-share-backtest
+        run: |
+          set -o pipefail
+          python -u run_geff_h30_h105_phase0_identity.py 2>&1 | tee geff_phase0_identity.log
+      - name: Print metrics
+        if: always()
+        working-directory: a-share-backtest
+        run: cat results_geff_phase0_identity/phase0_metrics.csv || true
+      - name: Upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-original-phase0-identity-fast-results
+          path: |
+            a-share-backtest/results_geff_phase0_identity/
+            a-share-backtest/geff_phase0_identity.log
+          retention-days: 14
