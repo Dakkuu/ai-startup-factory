@@ -1,0 +1,107 @@
+name: GEff Generator Alignment Return Basis
+
+on:
+  push:
+    branches:
+      - geff-generator-align-20260902
+    paths:
+      - '.github/workflows/geff-generator-align-return-basis.yml'
+  workflow_dispatch:
+
+jobs:
+  return-basis-grid:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip numpy pandas
+      - name: Build and run variants
+        env:
+          QLIB_RELEASE_TAG: '2026-08-30'
+        run: |
+          set -o pipefail
+          mkdir -p results_align_return_basis
+          python - <<'PY'
+          from pathlib import Path
+          import base64,gzip
+          src=gzip.decompress(base64.b64decode(Path('research/geff_phase/run_geff_h70_h120_phase_sweep.py.gz.b64').read_bytes())).decode()
+
+          profiles=[
+            # name, factor_close_mode, return_mode, ols_minobs, rmom_minobs, risk_minobs
+            ('raw_consecutive_252', 'raw',   'consecutive', 252,105,60),
+            ('raw_carry_252',       'raw',   'carry',       252,105,60),
+            ('ffill_all_252',       'ffill', 'carry',       252,105,60),
+            ('ffill_all_200',       'ffill', 'carry',       200,95,50),
+            ('ffill_all_180',       'ffill', 'carry',       180,90,50),
+            ('raw_carry_200',       'raw',   'carry',       200,95,50),
+          ]
+
+          for name,cmode,rmode,om,rm,rv in profiles:
+              s=src
+              s=s.replace("HORIZONS = list(range(30, 121, 5))", "HORIZONS = [75, 90, 105]")
+              s=s.replace("HORIZONS = list(range(70, 121, 5))", "HORIZONS = [75, 90, 105]")
+              marker="MAX_RAMP = 0.25"
+              s=s.replace(marker, marker+f"\nOLS_MINOBS = {om}\nRMOM_MINOBS = {rm}\nRES_MINOBS = {rv}\nFACTOR_CLOSE_MODE = '{cmode}'\nRETURN_MODE = '{rmode}'")
+              s=s.replace("g = np.isfinite(y) & (cnt >= window)", "g = np.isfinite(y) & (cnt >= OLS_MINOBS)")
+              s=s.replace("rmom[cnt>=RMOM_N] = s[cnt>=RMOM_N]", "rmom[cnt>=RMOM_MINOBS] = s[cnt>=RMOM_MINOBS]")
+              s=s.replace("full = cnt >= RES_W", "full = cnt >= RES_MINOBS")
+              s=s.replace("base = gate & np.isfinite(rmom)&np.isfinite(ivol)&np.isfinite(down)&np.isfinite(trend)", "factor_complete = member & np.isfinite(rmom)&np.isfinite(ivol)&np.isfinite(down)&np.isfinite(trend)\n        base = gate & factor_complete")
+              s=s.replace("'eff_gate_n':int(gate.sum()),'eligible_n':nbase", "'eff_gate_n':int(gate.sum()),'factor_complete_n':int(factor_complete.sum()),'eligible_n':nbase")
+
+              old="""    ret=np.full((T,N),np.nan,dtype=np.float32)\n    a=close[:-1].astype(np.float64,copy=False); b=close[1:].astype(np.float64,copy=False)\n    g=np.isfinite(a)&np.isfinite(b)&(a>0)&(b>0)\n    tmp=np.full_like(b,np.nan,dtype=np.float64); tmp[g]=b[g]/a[g]-1.0\n    ret[1:]=tmp.astype(np.float32)\n    mret=np.full(T,np.nan,dtype=np.float64); mg=np.isfinite(mclose[:-1])&np.isfinite(mclose[1:])&(mclose[:-1]>0)&(mclose[1:]>0)\n    mret[1:][mg]=mclose[1:][mg]/mclose[:-1][mg]-1.0\n\n    eps=rolling_residuals(ret,mret,REG_W)\n    mark_ret=build_mark_returns(close)\n"""
+              new="""    # Optional calendar forward-fill after first observed quote. Pre-listing remains NaN.\n    close_ffill=close.copy()\n    last=np.full(N,np.nan,dtype=np.float64)\n    for tt in range(T):\n        cur=close_ffill[tt].astype(np.float64,copy=False)\n        good=np.isfinite(cur)&(cur>0)\n        miss=(~good)&np.isfinite(last)&(last>0)\n        if np.any(miss): close_ffill[tt,miss]=last[miss].astype(np.float32)\n        good2=np.isfinite(close_ffill[tt])&(close_ffill[tt]>0)\n        last[good2]=close_ffill[tt,good2]\n    factor_close=close_ffill if FACTOR_CLOSE_MODE=='ffill' else close\n\n    ret=np.full((T,N),np.nan,dtype=np.float32)\n    if RETURN_MODE=='consecutive':\n        a=factor_close[:-1].astype(np.float64,copy=False); b=factor_close[1:].astype(np.float64,copy=False)\n        g=np.isfinite(a)&np.isfinite(b)&(a>0)&(b>0)\n        tmp=np.full_like(b,np.nan,dtype=np.float64); tmp[g]=b[g]/a[g]-1.0\n        ret[1:]=tmp.astype(np.float32)\n    else:\n        last=np.full(N,np.nan,dtype=np.float64)\n        started=np.zeros(N,dtype=bool)\n        for tt in range(T):\n            cur=close[tt].astype(np.float64,copy=False)\n            good=np.isfinite(cur)&(cur>0)\n            if FACTOR_CLOSE_MODE=='ffill':\n                cur=factor_close[tt].astype(np.float64,copy=False)\n                good=np.isfinite(cur)&(cur>0)\n            # Once a stock has started trading, a missing quote contributes a zero calendar-day return.\n            if FACTOR_CLOSE_MODE=='raw':\n                ret[tt, started & (~good)] = 0.0\n            both=started & good & np.isfinite(last)&(last>0)\n            ret[tt,both]=(cur[both]/last[both]-1.0).astype(np.float32)\n            last[good]=cur[good]\n            started[good]=True\n\n    mret=np.full(T,np.nan,dtype=np.float64); mg=np.isfinite(mclose[:-1])&np.isfinite(mclose[1:])&(mclose[:-1]>0)&(mclose[1:]>0)\n    mret[1:][mg]=mclose[1:][mg]/mclose[:-1][mg]-1.0\n\n    eps=rolling_residuals(ret,mret,REG_W)\n    mark_ret=build_mark_returns(close)\n"""
+              if old not in s:
+                  raise SystemExit('return block not found')
+              s=s.replace(old,new)
+              s=s.replace("compute_signal_ranks(close,ret,eps,cal,signal_indices,codes,start_dates,end_dates)", "compute_signal_ranks(factor_close,ret,eps,cal,signal_indices,codes,start_dates,end_dates)")
+              Path(f'research/geff_phase/{name}.py').write_text(s)
+          PY
+
+          for profile in raw_consecutive_252 raw_carry_252 ffill_all_252 ffill_all_200 ffill_all_180 raw_carry_200; do
+            echo "===== RUN ${profile} ====="
+            rm -rf results_geff_h70_h120_phase
+            python -u "research/geff_phase/${profile}.py" 2>&1 | tee "results_align_return_basis/${profile}.log"
+            mv results_geff_h70_h120_phase "results_align_return_basis/${profile}"
+            echo "--- ${profile} phase0 ---"
+            cat "results_align_return_basis/${profile}/phase0_vs_exact_headline.csv"
+            echo "--- ${profile} audit first ---"
+            head -3 "results_align_return_basis/${profile}/ranking_audit.csv"
+          done
+
+          python - <<'PY'
+          import pandas as pd
+          from pathlib import Path
+          rows=[]
+          root=Path('results_align_return_basis')
+          for d in root.iterdir():
+              if not d.is_dir(): continue
+              x=pd.read_csv(d/'phase0_vs_exact_headline.csv'); a=pd.read_csv(d/'ranking_audit.csv')
+              rows.append({
+                  'profile':d.name,
+                  'mean_abs_pos1_cagr_error_pp':float(x.cagr_error_pp.abs().mean()),
+                  'h75_pos1_cagr':float(x.loc[x.H.eq(75),'pos1_cagr'].iloc[0]),
+                  'h90_pos1_cagr':float(x.loc[x.H.eq(90),'pos1_cagr'].iloc[0]),
+                  'h105_pos1_cagr':float(x.loc[x.H.eq(105),'pos1_cagr'].iloc[0]),
+                  'h90_error_pp':float(x.loc[x.H.eq(90),'cagr_error_pp'].iloc[0]),
+                  'first_eff_valid':int(a.iloc[0].eff_valid),
+                  'first_factor_complete':int(a.iloc[0].factor_complete_n),
+                  'first_eligible':int(a.iloc[0].eligible_n),
+                  'median_factor_complete':float(a.factor_complete_n.median()),
+                  'median_eligible':float(a.eligible_n.median()),
+              })
+          z=pd.DataFrame(rows).sort_values('mean_abs_pos1_cagr_error_pp')
+          z.to_csv(root/'GRID_SUMMARY.csv',index=False)
+          print('GRID_SUMMARY')
+          print(z.to_string(index=False))
+          PY
+      - name: Upload grid
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-generator-align-return-basis-results
+          path: results_align_return_basis/
+          retention-days: 14
