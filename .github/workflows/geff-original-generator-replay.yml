@@ -1,0 +1,50 @@
+name: GEff Original Generator Replay
+
+on:
+  push:
+    branches:
+      - geff-original-generator-replay-20260902
+    paths:
+      - '.github/workflows/geff-original-generator-replay.yml'
+  workflow_dispatch:
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      OMP_NUM_THREADS: 4
+      OPENBLAS_NUM_THREADS: 4
+      MKL_NUM_THREADS: 4
+      NUMEXPR_NUM_THREADS: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Replay exact historical statistics generator
+        working-directory: a-share-backtest
+        run: |
+          set -o pipefail
+          python -u run_10y_geff55_statistics_v2.py 2>&1 | tee geff_original_replay.log
+      - name: Show audit
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          echo '=== AUDIT ==='
+          cat results_geff55_statistics_v2/audit.csv || true
+          echo '=== FROZEN CANDIDATE ==='
+          grep 'geff55_orig|h90|n15|e0.1|k0.3' results_geff55_statistics_v2/candidate_family.csv || true
+          echo '=== FILE SHAS ==='
+          sha256sum results_geff55_statistics_v2/candidate_daily_returns.csv results_geff55_statistics_v2/candidate_family.csv || true
+      - name: Upload replay
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geff-original-generator-replay-results
+          path: |
+            a-share-backtest/results_geff55_statistics_v2/
+            a-share-backtest/geff_original_replay.log
+          retention-days: 14
