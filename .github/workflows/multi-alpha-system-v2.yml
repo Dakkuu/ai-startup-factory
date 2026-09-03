@@ -1,0 +1,120 @@
+name: A-share Multi Alpha System V2 Sharded
+on:
+  push:
+    branches: [geff-fundamental-pit-20260902]
+    paths:
+      - 'a-share-backtest/run_multi_alpha_shard_common_v2.py'
+      - 'a-share-backtest/run_multi_alpha_short_family_v2.py'
+      - 'a-share-backtest/run_multi_alpha_long_v2.py'
+      - 'a-share-backtest/run_multi_alpha_medium_v2.py'
+      - 'a-share-backtest/run_multi_alpha_combine_v2.py'
+      - '.github/workflows/multi-alpha-system-v2.yml'
+  workflow_dispatch:
+
+jobs:
+  short:
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [rev5, mom20, breakout, accel]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env: {OMP_NUM_THREADS: '4', OPENBLAS_NUM_THREADS: '4', MKL_NUM_THREADS: '4', NUMEXPR_NUM_THREADS: '4'}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run short family
+        working-directory: a-share-backtest
+        run: python -u run_multi_alpha_short_family_v2.py ${{ matrix.family }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: multi-alpha-short-${{ matrix.family }}-v2
+          path: a-share-backtest/results_multi_alpha_short_${{ matrix.family }}_v2/
+          retention-days: 30
+
+  long:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env: {OMP_NUM_THREADS: '4', OPENBLAS_NUM_THREADS: '4', MKL_NUM_THREADS: '4', NUMEXPR_NUM_THREADS: '4'}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests akshare pyarrow
+      - name: Download PIT fundamentals
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          mkdir -p a-share-backtest/artifact_cache/value a-share-backtest/artifact_cache/stmt
+          gh run download 33634216408 -n geff-fundamental-period-v2-value -D a-share-backtest/artifact_cache/value
+          gh run download 33634216408 -n geff-fundamental-period-v2-3stmt -D a-share-backtest/artifact_cache/stmt
+      - name: Run long sleeve search
+        working-directory: a-share-backtest
+        run: python -u run_multi_alpha_long_v2.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: multi-alpha-long-v2
+          path: a-share-backtest/results_multi_alpha_long_v2/
+          retention-days: 30
+
+  medium:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env: {OMP_NUM_THREADS: '4', OPENBLAS_NUM_THREADS: '4', MKL_NUM_THREADS: '4', NUMEXPR_NUM_THREADS: '4'}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests akshare pyarrow
+      - name: Download PIT fundamentals
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          mkdir -p a-share-backtest/artifact_cache/value a-share-backtest/artifact_cache/stmt
+          gh run download 33634216408 -n geff-fundamental-period-v2-value -D a-share-backtest/artifact_cache/value
+          gh run download 33634216408 -n geff-fundamental-period-v2-3stmt -D a-share-backtest/artifact_cache/stmt
+      - name: Run fixed medium sleeve
+        working-directory: a-share-backtest
+        run: python -u run_multi_alpha_medium_v2.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: multi-alpha-medium-v2
+          path: a-share-backtest/results_multi_alpha_medium_v2/
+          retention-days: 30
+
+  combine:
+    needs: [short, long, medium]
+    if: always() && needs.short.result == 'success' && needs.long.result == 'success' && needs.medium.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: multi-alpha-*-v2
+          path: a-share-backtest/multi_alpha_inputs
+          merge-multiple: true
+      - name: Combine sleeves and audit portfolio
+        working-directory: a-share-backtest
+        run: python -u run_multi_alpha_combine_v2.py
+      - name: Print final outputs
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          cat results_multi_alpha_system_v2/strategy.json || true
+          cat results_multi_alpha_system_v2/selected_sleeves.csv || true
+          cat results_multi_alpha_system_v2/allocation_grid.csv || true
+          cat results_multi_alpha_system_v2/allocation_cost_stress.csv || true
+          cat results_multi_alpha_system_v2/gates.csv || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: multi-alpha-system-v2-results
+          path: a-share-backtest/results_multi_alpha_system_v2/
+          retention-days: 30
