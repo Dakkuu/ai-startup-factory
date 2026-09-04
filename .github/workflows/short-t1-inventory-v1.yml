@@ -1,0 +1,47 @@
+name: A-share T1 Inventory Exhaustion V1
+on:
+  push:
+    branches: [geff-fundamental-pit-20260902]
+    paths:
+      - 'a-share-backtest/run_short_t1_inventory_v1.py'
+      - 'a-share-backtest/short_t1_inventory_runtime.json'
+      - 'a-share-backtest/T1_INVENTORY_EXHAUSTION_PREREG_2026-09-04.md'
+      - '.github/workflows/short-t1-inventory-v1.yml'
+  workflow_dispatch:
+
+jobs:
+  backtest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      OMP_NUM_THREADS: '4'
+      OPENBLAS_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
+      NUMEXPR_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Run T1-IE stock-level backtest
+        working-directory: a-share-backtest
+        run: python -u run_short_t1_inventory_v1.py
+      - name: Print audit outputs
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          echo '=== SELECTED ==='
+          cat results_short_t1_inventory_v1/selected_metrics.csv || true
+          echo '=== COST ==='
+          cat results_short_t1_inventory_v1/cost_stress.csv || true
+          echo '=== CONTROLS ==='
+          cat results_short_t1_inventory_v1/event_only_ablation.csv || true
+          cat results_short_t1_inventory_v1/reverse_control.csv || true
+          echo '=== GATES ==='
+          cat results_short_t1_inventory_v1/gates.csv || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: short-t1-inventory-v1-results
+          path: a-share-backtest/results_short_t1_inventory_v1/
+          retention-days: 30
