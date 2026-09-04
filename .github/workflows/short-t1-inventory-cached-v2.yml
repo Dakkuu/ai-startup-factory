@@ -1,0 +1,142 @@
+name: A-share T1 Inventory Exhaustion Cached V2
+on:
+  push:
+    branches: [geff-fundamental-pit-20260902]
+    paths:
+      - 'a-share-backtest/run_short_t1_inventory_cached_v2.py'
+      - '.github/workflows/short-t1-inventory-cached-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  OMP_NUM_THREADS: '4'
+  OPENBLAS_NUM_THREADS: '4'
+  MKL_NUM_THREADS: '4'
+  NUMEXPR_NUM_THREADS: '4'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - name: Download completed broad-candidate cache from original prereg run
+        uses: actions/download-artifact@v4
+        with:
+          name: short-t1-inventory-v1-results
+          path: a-share-backtest/cache_input
+          github-token: ${{ github.token }}
+          run-id: 33820425120
+      - name: Exact liquidity filter and signal preparation
+        working-directory: a-share-backtest
+        run: python -u run_short_t1_inventory_cached_v2.py prepare
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t1ie-prepared-v2
+          path: a-share-backtest/results_short_t1_inventory_cached_v2/prepare/
+          retention-days: 30
+
+  exec:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - uses: actions/download-artifact@v4
+        with:
+          name: t1ie-prepared-v2
+          path: a-share-backtest/prepare_input
+      - name: Build exact execution rows shard
+        working-directory: a-share-backtest
+        run: python -u run_short_t1_inventory_cached_v2.py exec --shard ${{ matrix.shard }} --shards 12
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t1ie-exec-v2-${{ matrix.shard }}
+          path: a-share-backtest/results_short_t1_inventory_cached_v2/exec/
+          retention-days: 30
+
+  grid:
+    needs: exec
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [balanced, strict_pressure, strict_absorption, deep_trap, quiet_release, high_recovery]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - uses: actions/download-artifact@v4
+        with:
+          name: t1ie-prepared-v2
+          path: a-share-backtest/prepare_input
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: t1ie-exec-v2-*
+          path: a-share-backtest/exec_input
+          merge-multiple: true
+      - name: Run 9 preregistered configs for variant
+        working-directory: a-share-backtest
+        run: python -u run_short_t1_inventory_cached_v2.py grid --variant ${{ matrix.variant }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: t1ie-grid-v2-${{ matrix.variant }}
+          path: a-share-backtest/results_short_t1_inventory_cached_v2/grid/
+          retention-days: 30
+
+  final:
+    needs: grid
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install pandas numpy scipy scikit-learn lightgbm statsmodels requests
+      - uses: actions/download-artifact@v4
+        with:
+          name: t1ie-prepared-v2
+          path: a-share-backtest/prepare_input
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: t1ie-exec-v2-*
+          path: a-share-backtest/exec_input
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: t1ie-grid-v2-*
+          path: a-share-backtest/grid_input
+          merge-multiple: true
+      - name: Train-only selection, controls and stress tests
+        working-directory: a-share-backtest
+        run: python -u run_short_t1_inventory_cached_v2.py final
+      - name: Print final result
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          echo '=== SELECTED ==='; cat results_short_t1_inventory_cached_v2/final/selected_metrics.csv || true
+          echo '=== COST ==='; cat results_short_t1_inventory_cached_v2/final/cost_stress.csv || true
+          echo '=== EVENT ONLY ==='; cat results_short_t1_inventory_cached_v2/final/event_only_ablation.csv || true
+          echo '=== REVERSE ==='; cat results_short_t1_inventory_cached_v2/final/reverse_control.csv || true
+          echo '=== GATES ==='; cat results_short_t1_inventory_cached_v2/final/gates.csv || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: short-t1-inventory-cached-v2-results
+          path: a-share-backtest/results_short_t1_inventory_cached_v2/final/
+          retention-days: 30
