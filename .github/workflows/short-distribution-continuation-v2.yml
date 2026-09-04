@@ -1,0 +1,49 @@
+name: A-share True Short Distribution Continuation V2
+on:
+  push:
+    branches: [geff-fundamental-pit-20260902]
+    paths:
+      - 'a-share-backtest/run_short_distribution_continuation_v2.py'
+      - '.github/workflows/short-distribution-continuation-v2.yml'
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      OMP_NUM_THREADS: '4'
+      OPENBLAS_NUM_THREADS: '4'
+      MKL_NUM_THREADS: '4'
+      NUMEXPR_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy scipy scikit-learn lightgbm requests
+      - name: Download frozen prepared signals
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p a-share-backtest/artifact_cache/prepared a-share-backtest/artifact_cache/exec
+          gh run download 33827798430 -n t1ie-prepared-v2 -D a-share-backtest/artifact_cache/prepared
+      - name: Download frozen execution shards
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 0 11); do gh run download 33827798430 -n t1ie-exec-v2-$i -D a-share-backtest/artifact_cache/exec/$i; done
+      - name: Run full-price fallback true short
+        working-directory: a-share-backtest
+        run: python -u run_short_distribution_continuation_v2.py
+      - name: Print results
+        if: always()
+        working-directory: a-share-backtest
+        run: |
+          cat results_short_distribution_continuation_v2/summary.csv || true
+          cat results_short_distribution_continuation_v2/gates.csv || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: short-distribution-continuation-v2-results
+          path: a-share-backtest/results_short_distribution_continuation_v2/
+          retention-days: 30
