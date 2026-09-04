@@ -1,0 +1,25 @@
+{
+  "mode": "sweep",
+  "custom": {
+    "name": "balanced",
+    "event_pressure_min": 0.75,
+    "event_fade_min": 0.12,
+    "event_close_seal_max": 0.90,
+    "event_vol_ratio_min": 1.30,
+    "flush_ret_n_min": -0.50,
+    "flush_ret_n_max": 0.10,
+    "flush_gap_n_max": 0.10,
+    "flush_vol_ratio_max": 0.80,
+    "flush_recovery_min": 0.55,
+    "flush_low_n_max": -0.08,
+    "liquidity_keep_pct": 0.70,
+    "memory_sessions": 5,
+    "n_hold": 10,
+    "entry_pct": 0.10,
+    "keep_pct": 0.30,
+    "exit_retry_sessions": 10,
+    "volume_participation": 0.05,
+    "initial_cash": 1000000,
+    "cost_mult": 1.0
+  }
+}
